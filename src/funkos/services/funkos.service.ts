@@ -1,57 +1,72 @@
-import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { CreateFunkoDto } from '../dto/create-funko.dto'
 import { UpdateFunkoDto } from '../dto/update-funko.dto'
 import { Funko } from '../entities/funko.entity'
+import { FunkoMapper } from '../mapper/funko-mapper'
+import { FunkoDto } from '../dto/funko.dto'
 
 @Injectable()
 export class FunkosService {
-  private funkoList: Funko[] = []
+  private funkoList: FunkoDto[] = []
   private indice: number = 1
   private logger = new Logger('FunkosService')
 
-  findAll() {
+  constructor(private readonly funkoMapper: FunkoMapper) {}
+
+  async findAll() {
     this.logger.log('Buscando todos los funkos')
     return this.funkoList
   }
 
-  findOne(id: number) {
+  async findOne(id: number) {
     this.logger.log(`Buscando funko con id: ${id}`)
     const funko = this.funkoList.find((funko) => funko.id == id)
     if (funko) {
       return funko
     }
-    throw new HttpException('Funko no encontrado', HttpStatus.NOT_FOUND)
+    throw new NotFoundException(`Funko con id: ${id} no encontrado`)
   }
 
-  create(createFunkoDto: CreateFunkoDto) {
+  async create(createFunkoDto: CreateFunkoDto) {
     this.logger.log('Funko creado')
     const funko = new Funko()
     funko.id = this.indice
     funko.name = createFunkoDto.name
-    funko.categoria = createFunkoDto.categoria
+    funko.price = createFunkoDto.price
+    funko.quantity = createFunkoDto.quantity
+    funko.image = createFunkoDto.image
+    funko.createdAt = new Date()
+    funko.updatedAt = new Date()
+    funko.category = createFunkoDto.category
     this.indice++
-    this.funkoList.push(funko)
-    return funko
+    const funkoDto = this.funkoMapper.toDto(funko)
+    this.funkoList.push(funkoDto)
+    return funkoDto
   }
 
-  update(id: number, updateFunkoDto: UpdateFunkoDto) {
+  async update(id: number, updateFunkoDto: UpdateFunkoDto) {
     this.logger.log(`Actualizando funko con id: ${id}`)
-    const funko = this.findOne(id)
+    const funko = await this.findOne(id)
     if (funko) {
       funko.name = updateFunkoDto.name
-      funko.categoria = updateFunkoDto.categoria
-      return funko
+      funko.price = updateFunkoDto.price
+      funko.quantity = updateFunkoDto.quantity
+      funko.image = updateFunkoDto.image
+      funko.updatedAt = new Date()
+      funko.createdAt = funko.createdAt
+      funko.category = updateFunkoDto.category
+      return this.funkoMapper.toDto(funko)
     }
-    throw new HttpException('Funko no encontrado', HttpStatus.NOT_FOUND)
+    throw new NotFoundException(`Funko con id: ${id} no encontrado`)
   }
 
-  remove(id: number) {
+  async remove(id: number) {
     this.logger.log(`Eliminando funko con id: ${id}`)
     const funko = this.findOne(id)
     if (funko) {
       this.funkoList = this.funkoList.filter((funko) => funko.id != id)
       return funko
     }
-    throw new HttpException('Funko no encontrado', HttpStatus.NOT_FOUND)
+    throw new NotFoundException(`Funko con id: ${id} no encontrado`)
   }
 }
