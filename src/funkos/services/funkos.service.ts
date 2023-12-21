@@ -3,70 +3,125 @@ import { CreateFunkoDto } from '../dto/create-funko.dto'
 import { UpdateFunkoDto } from '../dto/update-funko.dto'
 import { Funko } from '../entities/funko.entity'
 import { FunkoMapper } from '../mapper/funko-mapper'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Repository } from 'typeorm'
+import { Category } from '../../category/entities/category.entity'
 import { FunkoDto } from '../dto/funko.dto'
 
 @Injectable()
 export class FunkosService {
-  private funkoList: FunkoDto[] = []
-  private indice: number = 1
   private logger = new Logger('FunkosService')
 
-  constructor(private readonly funkoMapper: FunkoMapper) {}
-
-  async findAll() {
-    this.logger.log('Buscando todos los funkos')
-    return this.funkoList
+  constructor(
+    private readonly funkoMapper: FunkoMapper,
+    @InjectRepository(Funko)
+    private readonly funkoRepository: Repository<Funko>,
+    @InjectRepository(Category)
+    private readonly categoryRepository: Repository<Category>,
+  ) {
   }
 
-  async findOne(id: number) {
+  async findAll(): Promise<FunkoDto[]> {
+    this.logger.log('Buscando todos los funkos...')
+    const funko = await this.funkoRepository
+      .createQueryBuilder('funko')
+      .leftJoinAndSelect('funko.category', 'category')
+      .where('funko.isDeleted = :isDeleted', { isDeleted: false })
+      .orderBy('funko.id', 'ASC')
+      .getMany()
+    return funko.map((funko) => this.funkoMapper.toDto(funko))
+  }
+
+  async findOne(id: number): Promise<FunkoDto> {
     this.logger.log(`Buscando funko con id: ${id}`)
-    const funko = this.funkoList.find((funko) => funko.id == id)
-    if (funko) {
-      return funko
+    const funko = await this.funkoRepository
+      .createQueryBuilder('funko')
+      .leftJoinAndSelect('funko.category', 'category')
+      .where('funko.id = :id', { id })
+      .getOne()
+    if (!funko) {
+      throw new NotFoundException(`Funko con id: ${id} no encontrado`)
+    } else {
+      return this.funkoMapper.toDto(funko)
     }
-    throw new NotFoundException(`Funko con id: ${id} no encontrado`)
   }
 
-  async create(createFunkoDto: CreateFunkoDto) {
+  async create(createFunkoDto: CreateFunkoDto): Promise<FunkoDto> {
     this.logger.log('Funko creado')
-    const funko = new Funko()
-    funko.id = this.indice
-    funko.name = createFunkoDto.name
-    funko.price = createFunkoDto.price
-    funko.quantity = createFunkoDto.quantity
-    funko.image = createFunkoDto.image
-    funko.createdAt = new Date()
-    funko.updatedAt = new Date()
-    funko.category = createFunkoDto.category
-    this.indice++
-    const funkoDto = this.funkoMapper.toDto(funko)
-    this.funkoList.push(funkoDto)
-    return funkoDto
+    const category: Category = await this.checkCategory(createFunkoDto.category)
+    const funko = this.funkoMapper.toEntity(createFunkoDto, category)
+    const funkoCreated = await this.funkoRepository.save(funko)
+    return this.funkoMapper.toDto(funkoCreated)
   }
 
   async update(id: number, updateFunkoDto: UpdateFunkoDto) {
     this.logger.log(`Actualizando funko con id: ${id}`)
-    const funko = await this.findOne(id)
-    if (funko) {
-      funko.name = updateFunkoDto.name
-      funko.price = updateFunkoDto.price
-      funko.quantity = updateFunkoDto.quantity
-      funko.image = updateFunkoDto.image
-      funko.updatedAt = new Date()
-      funko.createdAt = funko.createdAt
-      funko.category = updateFunkoDto.category
-      return this.funkoMapper.toDto(funko)
+    const category: Category = await this.checkCategory(updateFunkoDto.category)
+    const funko = await this.funkoRepository
+      .createQueryBuilder('funko')
+      .leftJoinAndSelect('funko.category', 'category')
+      .where('funko.id = :id and funko.isDeleted = :isDeleted', {
+        id,
+        isDeleted: false,
+      })
+      .getOne()
+    if (!funko || !category) {
+      throw new NotFoundException(
+        `Funko con id: ${id} o categoria no encontrados`,
+      )
     }
-    throw new NotFoundException(`Funko con id: ${id} no encontrado`)
+    const funkoUpdated = await this.funkoRepository.save({
+      ...funko,
+      ...updateFunkoDto,
+      category,
+    })
+    return this.funkoMapper.toDto(funkoUpdated)
   }
 
   async remove(id: number) {
     this.logger.log(`Eliminando funko con id: ${id}`)
-    const funko = this.findOne(id)
-    if (funko) {
-      this.funkoList = this.funkoList.filter((funko) => funko.id != id)
-      return funko
+    const funko = await this.funkoRepository
+      .createQueryBuilder('funko')
+      .leftJoinAndSelect('funko.category', 'category')
+      .where('funko.id = :id', { id })
+      .getOne()
+    if (!funko) {
+      throw new NotFoundException(`Funko con id: ${id} no encontrado`)
     }
-    throw new NotFoundException(`Funko con id: ${id} no encontrado`)
+    await this.funkoRepository.delete(funko)
   }
+
+  async isDeletedToTrue(id: number) {
+    this.logger.log(`Eliminando funko con id: ${id}`)
+    const funko = await this.funkoRepository
+      .createQueryBuilder('funko')
+      .leftJoinAndSelect('funko.category', 'category')
+      .where('funko.id = :id', { id })
+      .getOne()
+    if (!funko) {
+      throw new NotFoundException(`Funko con id: ${id} no encontrado`)
+    }
+    await this.funkoRepository.save({
+      ...funko,
+      isDeleted: true,
+    })
+  }
+
+  private async checkCategory(nameCategory: string): Promise<Category> {
+    this.logger.log(`Buscando categoria con nombre: ${nameCategory}`)
+    const category = await this.categoryRepository
+      .createQueryBuilder('category')
+      .where('category.name = :name and' + ' category.isActive = :isActive', {
+        name: nameCategory,
+        isActive: true,
+      })
+      .getOne()
+    if (!category) {
+      throw new NotFoundException(
+        `Categoria con nombre: ${nameCategory} no encontrada`,
+      )
+    }
+    return category
+  }
+
 }

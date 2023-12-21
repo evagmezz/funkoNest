@@ -44,6 +44,7 @@ export class FunkosController {
   @Delete(':id')
   @HttpCode(204)
   remove(@Param('id', ParseIntPipe) id: number) {
-    return this.funkosService.remove(id)
+    //return this.funkosService.remove(id)
+    return this.funkosService.isDeletedToTrue(id)
   }
 }
