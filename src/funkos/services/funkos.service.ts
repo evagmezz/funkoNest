@@ -23,13 +23,13 @@ export class FunkosService {
 
   async findAll(): Promise<FunkoDto[]> {
     this.logger.log('Buscando todos los funkos...')
-    const funko = await this.funkoRepository
+    const funkos = await this.funkoRepository
       .createQueryBuilder('funko')
       .leftJoinAndSelect('funko.category', 'category')
       .where('funko.isDeleted = :isDeleted', { isDeleted: false })
       .orderBy('funko.id', 'ASC')
       .getMany()
-    return funko.map((funko) => this.funkoMapper.toDto(funko))
+    return funkos.map((funko) => this.funkoMapper.toDto(funko))
   }
 
   async findOne(id: number): Promise<FunkoDto> {
@@ -101,13 +101,14 @@ export class FunkosService {
     if (!funko) {
       throw new NotFoundException(`Funko con id: ${id} no encontrado`)
     }
-    await this.funkoRepository.save({
+    const funkoDeleted = await this.funkoRepository.save({
       ...funko,
       isDeleted: true,
     })
+    return this.funkoMapper.toDto(funkoDeleted)
   }
 
-  private async checkCategory(nameCategory: string): Promise<Category> {
+  async checkCategory(nameCategory: string): Promise<Category> {
     this.logger.log(`Buscando categoria con nombre: ${nameCategory}`)
     const category = await this.categoryRepository
       .createQueryBuilder('category')

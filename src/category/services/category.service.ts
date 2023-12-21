@@ -54,7 +54,7 @@ export class CategoryService {
   }
 
   async remove(id: string): Promise<Category> {
-    const category = await this.categoryRepository.findOneBy({ id })
+    const category = await this.categoryExists(id)
     if (!category) {
       throw new NotFoundException(`Categoria con id ${id} no encontrada`)
     } else {
@@ -79,13 +79,18 @@ export class CategoryService {
       .createQueryBuilder('category')
       .where('LOWER(name) = LOWER(:name)', { name })
       .getOne()
-    if (category) {
+    if (!category) {
+      const newCategory = new Category()
+      newCategory.name = name
+      newCategory.isActive = true
+      return await this.categoryRepository.save(newCategory)
+    } else if(category){
       if (category.isActive === true) {
         throw new BadRequestException(`Categoria con nombre ${name} ya existe`)
       } else if (category.isActive === false) {
         category.isActive = true
+        return await this.categoryRepository.save(category)
       }
-      return await this.categoryRepository.save(category)
     }
   }
 }

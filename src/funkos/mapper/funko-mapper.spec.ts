@@ -1,18 +1,63 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { FunkoMapper } from './funko-mapper'
+import { Funko } from '../entities/funko.entity'
+import { FunkoDto } from '../dto/funko.dto'
 
 describe('FunkoMapper', () => {
-  let provider: FunkoMapper
+  let mapper: FunkoMapper
 
+  const category = {
+    id: 'uuid',
+    name: 'Marvel',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    isActive: true,
+    funkos: [],
+  }
+  const funko = {
+    id: 1,
+    name: 'Spiderman',
+    price: 100,
+    quantity: 10,
+    image: 'image.png',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    isDeleted: false,
+    category: category,
+  }
+  const createFunkoDto = {
+    name: 'Spiderman',
+    price: 100,
+    quantity: 10,
+    image: 'image.png',
+    isDeleted: false,
+    category: category.name,
+  }
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [FunkoMapper],
     }).compile()
 
-    provider = module.get<FunkoMapper>(FunkoMapper)
+    mapper = module.get<FunkoMapper>(FunkoMapper)
   })
 
   it('should be defined', () => {
-    expect(provider).toBeDefined()
+    expect(mapper).toBeDefined()
+  })
+  it('should map dto to entity', () => {
+    const expectedFunko = {
+      ...funko,
+      category: category,
+    }
+    const actualFunko = mapper.toEntity(createFunkoDto, category)
+    expect(actualFunko).toBeInstanceOf(Funko)
+  })
+  it('should map entity to dto', () => {
+    const expectedFunkoDto = {
+      ...funko,
+      category: category.name,
+    }
+    const actualFunkoDto = mapper.toDto(funko)
+    expect(actualFunkoDto).toBeInstanceOf(FunkoDto)
   })
 })

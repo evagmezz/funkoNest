@@ -95,23 +95,16 @@ describe('CategoryService', () => {
   describe('remove', () => {
     it('should remove a category', async () => {
       const category = new Category()
-      category.name = 'MARVEL'
 
-      const mockQuery = {
-        where: jest.fn().mockReturnThis(),
-        getOne: jest.fn().mockResolvedValue(category),
-      }
-
-      jest.spyOn(repository, 'createQueryBuilder').mockReturnValue(mockQuery as any)
-      jest.spyOn(repository, 'findOneBy').mockResolvedValue(category)
+      jest.spyOn(service, 'categoryExists').mockResolvedValue(category)
       jest.spyOn(repository, 'remove').mockResolvedValue(category)
 
-      const result = await service.remove('d69cf3db-b77d-4181-b3cd-5ca8107fb6a7')
+      const result = await service.remove('uuid')
       expect(result).toEqual(category)
     })
     it('should throw a Not Found Exception', async () => {
-      jest.spyOn(repository, 'findOneBy').mockReturnValue(null)
-      await expect(service.remove('d69cf3db-b77d-4181-b3cd-5ca8107fb6a7')).rejects.toThrow(NotFoundException)
+      jest.spyOn(service, 'categoryExists').mockReturnValue(null)
+      await expect(service.remove('uuid')).rejects.toThrow(NotFoundException)
     })
   })
 
