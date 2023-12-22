@@ -32,7 +32,7 @@ describe('CategoryController', () => {
     it('should return an array of categories', async () => {
       const result: Array<Category> = []
       jest.spyOn(service, 'findAll').mockResolvedValue(result)
-      const categories = await controller.findAll()
+      await controller.findAll()
       expect(result).toBeInstanceOf(Array)
       expect(service.findAll).toHaveBeenCalled()
     })
@@ -84,7 +84,9 @@ describe('CategoryController', () => {
     })
     it('should throw a NotFoundException', async () => {
       const id = 'uuid'
-      jest.spyOn(service, 'changeIsActive').mockRejectedValue(new NotFoundException())
+      jest
+        .spyOn(service, 'changeIsActive')
+        .mockRejectedValue(new NotFoundException())
       await expect(controller.remove(id)).rejects.toThrow(NotFoundException)
     })
   })

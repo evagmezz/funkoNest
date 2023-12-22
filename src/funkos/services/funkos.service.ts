@@ -6,7 +6,6 @@ import { FunkoMapper } from '../mapper/funko-mapper'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { Category } from '../../category/entities/category.entity'
-import { FunkoDto } from '../dto/funko.dto'
 
 @Injectable()
 export class FunkosService {
@@ -18,10 +17,9 @@ export class FunkosService {
     private readonly funkoRepository: Repository<Funko>,
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
-  ) {
-  }
+  ) {}
 
-  async findAll(): Promise<FunkoDto[]> {
+  async findAll() {
     this.logger.log('Buscando todos los funkos...')
     const funkos = await this.funkoRepository
       .createQueryBuilder('funko')
@@ -32,7 +30,7 @@ export class FunkosService {
     return funkos.map((funko) => this.funkoMapper.toDto(funko))
   }
 
-  async findOne(id: number): Promise<FunkoDto> {
+  async findOne(id: number) {
     this.logger.log(`Buscando funko con id: ${id}`)
     const funko = await this.funkoRepository
       .createQueryBuilder('funko')
@@ -46,7 +44,7 @@ export class FunkosService {
     }
   }
 
-  async create(createFunkoDto: CreateFunkoDto): Promise<FunkoDto> {
+  async create(createFunkoDto: CreateFunkoDto) {
     this.logger.log('Funko creado')
     const category: Category = await this.checkCategory(createFunkoDto.category)
     const funko = this.funkoMapper.toEntity(createFunkoDto, category)
@@ -108,7 +106,7 @@ export class FunkosService {
     return this.funkoMapper.toDto(funkoDeleted)
   }
 
-  async checkCategory(nameCategory: string): Promise<Category> {
+  async checkCategory(nameCategory: string) {
     this.logger.log(`Buscando categoria con nombre: ${nameCategory}`)
     const category = await this.categoryRepository
       .createQueryBuilder('category')
@@ -124,5 +122,4 @@ export class FunkosService {
     }
     return category
   }
-
 }

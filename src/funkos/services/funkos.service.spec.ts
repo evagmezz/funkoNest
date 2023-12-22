@@ -23,7 +23,8 @@ describe('FunkosService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [FunkosService,
+      providers: [
+        FunkosService,
         { provide: getRepositoryToken(Funko), useClass: Repository },
         { provide: getRepositoryToken(Category), useClass: Repository },
         { provide: FunkoMapper, useValue: mapperMock },
@@ -32,7 +33,9 @@ describe('FunkosService', () => {
 
     service = module.get<FunkosService>(FunkosService)
     funkoRepository = module.get<Repository<Funko>>(getRepositoryToken(Funko))
-    categoryRepository = module.get<Repository<Category>>(getRepositoryToken(Category))
+    categoryRepository = module.get<Repository<Category>>(
+      getRepositoryToken(Category),
+    )
     mapper = module.get<FunkoMapper>(FunkoMapper)
   })
 
@@ -58,7 +61,6 @@ describe('FunkosService', () => {
   })
   describe('findOne', () => {
     it('should return a funko', async () => {
-      const funko = new Funko()
       const funkoDto = new FunkoDto()
       const mockQuery = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
@@ -162,8 +164,12 @@ describe('FunkosService', () => {
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(undefined),
       }
-      jest.spyOn(funkoRepository, 'createQueryBuilder').mockReturnValue(mockQuery as any)
-      await expect(service.isDeletedToTrue(1)).rejects.toThrow(NotFoundException)
+      jest
+        .spyOn(funkoRepository, 'createQueryBuilder')
+        .mockReturnValue(mockQuery as any)
+      await expect(service.isDeletedToTrue(1)).rejects.toThrow(
+        NotFoundException,
+      )
     })
   })
   describe('checkCategory', () => {
@@ -173,7 +179,9 @@ describe('FunkosService', () => {
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(category),
       }
-      jest.spyOn(categoryRepository, 'createQueryBuilder').mockReturnValue(mockQuery as any)
+      jest
+        .spyOn(categoryRepository, 'createQueryBuilder')
+        .mockReturnValue(mockQuery as any)
       expect(await service.checkCategory('1')).toEqual(category)
     })
     it('should throw a NotFoundException', async () => {
@@ -181,8 +189,12 @@ describe('FunkosService', () => {
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(undefined),
       }
-      jest.spyOn(categoryRepository, 'createQueryBuilder').mockReturnValue(mockQuery as any)
-      await expect(service.checkCategory('1')).rejects.toThrow(NotFoundException)
+      jest
+        .spyOn(categoryRepository, 'createQueryBuilder')
+        .mockReturnValue(mockQuery as any)
+      await expect(service.checkCategory('1')).rejects.toThrow(
+        NotFoundException,
+      )
     })
   })
 })

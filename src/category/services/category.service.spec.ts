@@ -19,15 +19,18 @@ describe('CategoryService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [CategoryService, { provide: CategoryMapper, useValue: mapperMock }, {
-        provide: getRepositoryToken(Category),
-        useClass: Repository,
-      }],
+      providers: [
+        CategoryService,
+        { provide: CategoryMapper, useValue: mapperMock },
+        {
+          provide: getRepositoryToken(Category),
+          useClass: Repository,
+        },
+      ],
     }).compile()
 
     service = module.get<CategoryService>(CategoryService)
-    repository = module.get<Repository<Category>>(
-      getRepositoryToken(Category))
+    repository = module.get<Repository<Category>>(getRepositoryToken(Category))
     mapper = module.get<CategoryMapper>(CategoryMapper)
   })
 
@@ -46,11 +49,15 @@ describe('CategoryService', () => {
     it('should create a category', async () => {
       const category = new Category()
       jest.spyOn(repository, 'findOneBy').mockResolvedValue(category)
-      expect(await service.findOne('d69cf3db-b77d-4181-b3cd-5ca8107fb6a7')).toBe(category)
+      expect(
+        await service.findOne('d69cf3db-b77d-4181-b3cd-5ca8107fb6a7'),
+      ).toBe(category)
     })
     it('should throw a Not Found Exception', async () => {
       jest.spyOn(repository, 'findOneBy').mockResolvedValue(undefined)
-      await expect(service.findOne('d69cf3db-b77d-4181-b3cd-5ca8107fb6a7')).rejects.toThrow(NotFoundException)
+      await expect(
+        service.findOne('d69cf3db-b77d-4181-b3cd-5ca8107fb6a7'),
+      ).rejects.toThrow(NotFoundException)
     })
   })
   describe('create', () => {
@@ -62,7 +69,9 @@ describe('CategoryService', () => {
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(undefined),
       }
-      jest.spyOn(repository, 'createQueryBuilder').mockReturnValue(mockQuery as any)
+      jest
+        .spyOn(repository, 'createQueryBuilder')
+        .mockReturnValue(mockQuery as any)
       jest.spyOn(mapper, 'toEntity').mockReturnValue(category)
       jest.spyOn(repository, 'save').mockResolvedValue(category)
       jest.spyOn(service, 'categoryExists').mockResolvedValue(null)
@@ -83,12 +92,17 @@ describe('CategoryService', () => {
       }
       const mockUpdateCategoryDto = new UpdateCategoryDto()
 
-      jest.spyOn(repository, 'createQueryBuilder').mockReturnValue(mockQuery as any)
+      jest
+        .spyOn(repository, 'createQueryBuilder')
+        .mockReturnValue(mockQuery as any)
       jest.spyOn(mapper, 'toEntity').mockReturnValue(category)
       jest.spyOn(repository, 'save').mockResolvedValue(category)
       jest.spyOn(service, 'categoryExists').mockResolvedValue(null)
 
-      const result = await service.update('d69cf3db-b77d-4181-b3cd-5ca8107fb6a7', mockUpdateCategoryDto)
+      const result = await service.update(
+        'd69cf3db-b77d-4181-b3cd-5ca8107fb6a7',
+        mockUpdateCategoryDto,
+      )
       expect(result).toBe(category)
     })
   })
@@ -119,16 +133,22 @@ describe('CategoryService', () => {
         getOne: jest.fn().mockResolvedValue(category),
       }
 
-      jest.spyOn(repository, 'createQueryBuilder').mockReturnValue(mockQuery as any)
+      jest
+        .spyOn(repository, 'createQueryBuilder')
+        .mockReturnValue(mockQuery as any)
       jest.spyOn(repository, 'findOneBy').mockResolvedValue(category)
       jest.spyOn(repository, 'save').mockResolvedValue(category)
 
-      const result = await service.changeIsActive('d69cf3db-b77d-4181-b3cd-5ca8107fb6a7')
+      const result = await service.changeIsActive(
+        'd69cf3db-b77d-4181-b3cd-5ca8107fb6a7',
+      )
       expect(result).toEqual(category)
     })
     it('should throw a Not Found Exception', async () => {
       jest.spyOn(repository, 'findOneBy').mockReturnValue(null)
-      await expect(service.changeIsActive('d69cf3db-b77d-4181-b3cd-5ca8107fb6a7')).rejects.toThrow(NotFoundException)
+      await expect(
+        service.changeIsActive('d69cf3db-b77d-4181-b3cd-5ca8107fb6a7'),
+      ).rejects.toThrow(NotFoundException)
     })
   })
 })
