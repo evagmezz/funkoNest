@@ -6,7 +6,7 @@ import { CategoryMapper } from '../mapper/category-mapper'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { CreateCategoryDto } from '../dto/create-category.dto'
 import { UpdateCategoryDto } from '../dto/update-category.dto'
-import { NotFoundException } from '@nestjs/common'
+import { BadRequestException, NotFoundException } from '@nestjs/common'
 
 describe('CategoryService', () => {
   let service: CategoryService
@@ -149,6 +149,63 @@ describe('CategoryService', () => {
       await expect(
         service.changeIsActive('d69cf3db-b77d-4181-b3cd-5ca8107fb6a7'),
       ).rejects.toThrow(NotFoundException)
+    })
+  })
+  describe('categoryExists', () => {
+    it('should create and return a new category if not exists', async () => {
+      const newCategory = new Category()
+      newCategory.name = 'PC'
+      newCategory.isActive = true
+
+      const mockQuery = {
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(undefined),
+      }
+
+      jest
+        .spyOn(repository, 'createQueryBuilder')
+        .mockReturnValue(mockQuery as any)
+      jest.spyOn(repository, 'save').mockResolvedValue(newCategory)
+
+      const result = await service.categoryExists('PC')
+      expect(result).toEqual(newCategory)
+    })
+
+    it('should activate and return an inactive category', async () => {
+      const existingCategory = new Category()
+      existingCategory.name = 'PC'
+      existingCategory.isActive = false
+
+      const mockQuery = {
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(existingCategory),
+      }
+
+      jest
+        .spyOn(repository, 'createQueryBuilder')
+        .mockReturnValue(mockQuery as any)
+      jest.spyOn(repository, 'save').mockResolvedValue(existingCategory)
+
+      const result = await service.categoryExists('PC')
+      expect(result).toEqual(existingCategory)
+      expect(existingCategory.isActive).toBe(true)
+    })
+    it('should throw BadRequestException if category is already active', async () => {
+      const existingCategory = new Category()
+      existingCategory.name = 'PC'
+      existingCategory.isActive = true
+
+      const mockQuery = {
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(existingCategory),
+      }
+      jest
+        .spyOn(repository, 'createQueryBuilder')
+        .mockReturnValue(mockQuery as any)
+      jest.spyOn(repository, 'save').mockResolvedValue(existingCategory)
+      await expect(service.categoryExists('PC')).rejects.toThrow(
+        BadRequestException,
+      )
     })
   })
 })
