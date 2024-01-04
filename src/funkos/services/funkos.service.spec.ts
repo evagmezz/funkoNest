@@ -100,6 +100,21 @@ describe('FunkosService', () => {
 
       expect(await service.create(createFunkoDto)).toEqual(funkoDto)
     })
+    it('should throw a BadRequestException because of empty name', async () => {
+      const createFunkoDto = new CreateFunkoDto()
+      createFunkoDto.name = ''
+      await expect(service.create(createFunkoDto)).rejects.toThrow(TypeError)
+    })
+    it('should throw a BadRequestException because of empty price', async () => {
+      const createFunkoDto = new CreateFunkoDto()
+      createFunkoDto.price = undefined
+      await expect(service.create(createFunkoDto)).rejects.toThrow(TypeError)
+    })
+    it('should throw a BadRequestException because of empty quantity', async () => {
+      const createFunkoDto = new CreateFunkoDto()
+      createFunkoDto.quantity = undefined
+      await expect(service.create(createFunkoDto)).rejects.toThrow(TypeError)
+    })
   })
   describe('update', () => {
     it('should update a funko', async () => {
@@ -112,12 +127,29 @@ describe('FunkosService', () => {
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(funko),
       }
-      jest.spyOn(funkoRepository, 'createQueryBuilder').mockReturnValue(mockQuery as any)
+      jest
+        .spyOn(funkoRepository, 'createQueryBuilder')
+        .mockReturnValue(mockQuery as any)
       jest.spyOn(service, 'checkCategory').mockResolvedValue(category)
       jest.spyOn(funkoRepository, 'save').mockResolvedValue(funko)
       jest.spyOn(mapper, 'toDto').mockReturnValue(funkoDto)
 
       expect(await service.update(1, updateFunkoDto)).toEqual(funkoDto)
+    })
+    it('should throw a BadRequestException because of empty name', async () => {
+      const updateFunkoDto = new UpdateFunkoDto()
+      updateFunkoDto.name = ''
+      await expect(service.update(1, updateFunkoDto)).rejects.toThrow(TypeError)
+    })
+    it('should throw a BadRequestException because of empty price', async () => {
+      const updateFunkoDto = new UpdateFunkoDto()
+      updateFunkoDto.price = undefined
+      await expect(service.update(1, updateFunkoDto)).rejects.toThrow(TypeError)
+    })
+    it('should throw a BadRequestException because of empty quantity', async () => {
+      const updateFunkoDto = new UpdateFunkoDto()
+      updateFunkoDto.quantity = undefined
+      await expect(service.update(1, updateFunkoDto)).rejects.toThrow(TypeError)
     })
   })
   describe('remove', () => {
@@ -128,7 +160,9 @@ describe('FunkosService', () => {
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(funko),
       }
-      jest.spyOn(funkoRepository, 'createQueryBuilder').mockReturnValue(mockQuery as any)
+      jest
+        .spyOn(funkoRepository, 'createQueryBuilder')
+        .mockReturnValue(mockQuery as any)
       jest.spyOn(funkoRepository, 'delete').mockResolvedValue(undefined)
 
       expect(await service.remove(1)).toEqual(undefined)
@@ -139,7 +173,9 @@ describe('FunkosService', () => {
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(undefined),
       }
-      jest.spyOn(funkoRepository, 'createQueryBuilder').mockReturnValue(mockQuery as any)
+      jest
+        .spyOn(funkoRepository, 'createQueryBuilder')
+        .mockReturnValue(mockQuery as any)
       await expect(service.remove(1)).rejects.toThrow(NotFoundException)
     })
   })
@@ -152,7 +188,9 @@ describe('FunkosService', () => {
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(funko),
       }
-      jest.spyOn(funkoRepository, 'createQueryBuilder').mockReturnValue(mockQuery as any)
+      jest
+        .spyOn(funkoRepository, 'createQueryBuilder')
+        .mockReturnValue(mockQuery as any)
       jest.spyOn(funkoRepository, 'save').mockResolvedValue(funko)
       jest.spyOn(mapper, 'toDto').mockReturnValue(funkoDto)
 

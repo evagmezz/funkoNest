@@ -36,22 +36,30 @@ export class CategoryService {
   }
 
   async create(createCategoryDto: CreateCategoryDto) {
-    this.logger.log('Categoria creada')
+    this.logger.log('Creando categoria...')
     const category = this.categoryMapper.toEntity(createCategoryDto)
     const categoryCreated = await this.categoryExists(category.name)
     return await this.categoryRepository.save(categoryCreated)
   }
 
   async update(id: string, updateCategoryDto: UpdateCategoryDto) {
-    this.logger.log(`Actualizando categoria con id: ${id}`)
-    const category = this.categoryMapper.toEntity(updateCategoryDto)
-    const categoryUpdated = await this.categoryExists(category.name)
-    if (!categoryUpdated) {
-      return await this.categoryRepository.save({
-        ...category,
-        id,
-      })
+    this.logger.log(`Actualizando categoria con id:${id}`)
+    const categoryToUpdate = await this.findOne(id)
+    if (updateCategoryDto.name) {
+      const category = await this.categoryRepository
+        .createQueryBuilder('category')
+        .where('LOWER(name) = LOWER(:name)', { name: updateCategoryDto.name })
+        .getOne()
+      if (category && category.id !== categoryToUpdate.id) {
+        throw new BadRequestException(
+          `Categoria ${updateCategoryDto.name} ya existe`,
+        )
+      }
     }
+    return await this.categoryRepository.save({
+      ...categoryToUpdate,
+      ...updateCategoryDto,
+    })
   }
 
   async remove(id: string) {

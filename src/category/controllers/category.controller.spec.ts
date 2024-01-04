@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing'
 import { CategoryController } from './category.controller'
 import { CategoryService } from '../services/category.service'
 import { Category } from '../entities/category.entity'
-import { NotFoundException } from '@nestjs/common'
+import { BadRequestException, NotFoundException } from '@nestjs/common'
 
 describe('CategoryController', () => {
   let controller: CategoryController
