@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing'
 import { FunkoMapper } from './funko-mapper'
 import { Funko } from '../entities/funko.entity'
 import { FunkoDto } from '../dto/funko.dto'
+import { CreateFunkoDto } from '../dto/create-funko.dto'
 
 describe('FunkoMapper', () => {
   let mapper: FunkoMapper
@@ -25,7 +26,7 @@ describe('FunkoMapper', () => {
     isDeleted: false,
     category: category,
   }
-  const createFunkoDto = {
+  const createFunkoDto: CreateFunkoDto = {
     name: 'Spiderman',
     price: 100,
     quantity: 10,
@@ -51,6 +52,7 @@ describe('FunkoMapper', () => {
     }
     const actualFunko = mapper.toEntity(createFunkoDto, category)
     expect(actualFunko).toBeInstanceOf(Funko)
+    expect(actualFunko.name).toEqual(expectedFunko.name)
   })
   it('should map entity to dto', () => {
     const expectedFunkoDto = {
@@ -59,5 +61,6 @@ describe('FunkoMapper', () => {
     }
     const actualFunkoDto = mapper.toDto(funko)
     expect(actualFunkoDto).toBeInstanceOf(FunkoDto)
+    expect(actualFunkoDto.name).toEqual(expectedFunkoDto.name)
   })
 })

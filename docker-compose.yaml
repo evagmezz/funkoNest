@@ -1,6 +1,4 @@
 services:
-
-
   postgres-db:
     container_name: funkos-db_postgres
     image: postgres:12-alpine
@@ -17,9 +15,8 @@ services:
     networks:
       - funkos-network
 
-
 #volumes:
-  #storage-dir:
+#storage-dir:
 
 networks:
   funkos-network:

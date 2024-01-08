@@ -24,5 +24,4 @@ import { FunkoMapper } from './funkos/mapper/funko-mapper'
   ],
   providers: [CategoryMapper, FunkoMapper],
 })
-export class AppModule {
-}
+export class AppModule {}

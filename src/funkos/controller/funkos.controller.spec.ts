@@ -22,9 +22,7 @@ describe('FunkosController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [FunkosController],
-      providers: [
-        { provide: FunkosService, useValue: funkoServiceMock },
-      ],
+      providers: [{ provide: FunkosService, useValue: funkoServiceMock }],
     }).compile()
 
     controller = module.get<FunkosController>(FunkosController)
@@ -36,7 +34,7 @@ describe('FunkosController', () => {
   })
   describe('findAll', () => {
     it('should return an array of funkos', async () => {
-      const result: Array<FunkoDto> =[]
+      const result: Array<FunkoDto> = []
       jest.spyOn(service, 'findAll').mockResolvedValue(result)
       const funkos = await controller.findAll()
       expect(funkos).toBeInstanceOf(Array)
@@ -101,7 +99,9 @@ describe('FunkosController', () => {
     })
     it('should throw a NotFoundException', async () => {
       const id = 1
-      jest.spyOn(service, 'isDeletedToTrue').mockRejectedValue(new NotFoundException())
+      jest
+        .spyOn(service, 'isDeletedToTrue')
+        .mockRejectedValue(new NotFoundException())
       await expect(controller.remove(id)).rejects.toThrow(NotFoundException)
     })
   })

@@ -1,4 +1,12 @@
-import { IsBoolean, IsDate, IsInt, IsNotEmpty, IsOptional, IsPositive, IsString } from 'class-validator'
+import {
+  IsBoolean,
+  IsDate,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsPositive,
+  IsString,
+} from 'class-validator'
 import { Transform } from 'class-transformer'
 
 export class FunkoDto {
@@ -17,10 +25,6 @@ export class FunkoDto {
   @IsString({ message: 'La imagen debe ser una cadena de texto' })
   @IsOptional()
   image?: string
-  @IsDate()
-  createdAt: Date
-  @IsDate()
-  updatedAt: Date
   @IsOptional()
   @IsBoolean()
   isDeleted?: boolean

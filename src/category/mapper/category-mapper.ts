@@ -7,9 +7,7 @@ import { Category } from '../entities/category.entity'
 
 @Injectable()
 export class CategoryMapper {
-  toEntity(
-    createCategoryDto: CreateCategoryDto | UpdateCategoryDto,
-  ): Category {
+  toEntity(createCategoryDto: CreateCategoryDto | UpdateCategoryDto): Category {
     const category = new Category()
     return { ...createCategoryDto, ...category }
   }
