@@ -5,6 +5,7 @@ import { CategoryModule } from './rest/category/category.module'
 import * as process from 'process'
 import { StorageModule } from './rest/storage/storage.module'
 import { ConfigModule } from '@nestjs/config'
+import { CacheModule } from '@nestjs/cache-manager'
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { ConfigModule } from '@nestjs/config'
     CategoryModule,
     StorageModule,
     ConfigModule.forRoot(),
+    CacheModule.register(),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: 'localhost',

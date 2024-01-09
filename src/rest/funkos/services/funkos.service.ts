@@ -13,6 +13,12 @@ import { Repository } from 'typeorm'
 import { Category } from '../../category/entities/category.entity'
 import { StorageService } from '../../storage/services/storage.service'
 import { Request } from 'express'
+import { NotificationsGateway } from '../../../websockets/notifications/notifications.gateway'
+import {
+  Notification,
+  NotificationType,
+} from '../../../websockets/notifications/entities/notification.entity'
+import { FunkoDto } from '../dto/funko.dto'
 
 @Injectable()
 export class FunkosService {
@@ -20,6 +26,7 @@ export class FunkosService {
 
   constructor(
     private readonly storageService: StorageService,
+    private readonly notificationsGateway: NotificationsGateway,
     private readonly funkoMapper: FunkoMapper,
     @InjectRepository(Funko)
     private readonly funkoRepository: Repository<Funko>,
@@ -57,6 +64,8 @@ export class FunkosService {
     const category: Category = await this.checkCategory(createFunkoDto.category)
     const funko = this.funkoMapper.toEntity(createFunkoDto, category)
     const funkoCreated = await this.funkoRepository.save(funko)
+    const funkoDto = this.funkoMapper.toDto(funkoCreated)
+    this.notify(NotificationType.CREATE, funkoDto)
     return this.funkoMapper.toDto(funkoCreated)
   }
 
@@ -81,6 +90,8 @@ export class FunkosService {
       ...updateFunkoDto,
       category,
     })
+    const funkoDto = this.funkoMapper.toDto(funkoUpdated)
+    this.notify(NotificationType.UPDATE, funkoDto)
     return this.funkoMapper.toDto(funkoUpdated)
   }
 
@@ -103,6 +114,8 @@ export class FunkosService {
       }
     }
     const removed = await this.funkoRepository.remove(funko)
+    const funkoDto = this.funkoMapper.toDto(removed)
+    this.notify(NotificationType.DELETE, funkoDto)
     return this.funkoMapper.toDto(removed)
   }
 
@@ -120,6 +133,8 @@ export class FunkosService {
       ...funko,
       isDeleted: true,
     })
+    const funkoDto = this.funkoMapper.toDto(funkoDeleted)
+    this.notify(NotificationType.DELETE, funkoDto)
     return this.funkoMapper.toDto(funkoDeleted)
   }
 
@@ -184,6 +199,18 @@ export class FunkosService {
     funko.image = filePath
 
     const funkoUpdated = await this.funkoRepository.save(funko)
+    const funkoDto = this.funkoMapper.toDto(funkoUpdated)
+    this.notify(NotificationType.UPDATE, funkoDto)
     return this.funkoMapper.toDto(funkoUpdated)
+  }
+
+  private notify(type: NotificationType, data: FunkoDto) {
+    const notification = new Notification<FunkoDto>(
+      'funkos',
+      type,
+      data,
+      new Date(),
+    )
+    this.notificationsGateway.sendMessage(type, notification)
   }
 }
