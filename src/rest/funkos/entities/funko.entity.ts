@@ -20,6 +20,7 @@ import {
 
 @Entity('funkos')
 export class Funko {
+  public static IMAGE_DEFAULT = 'https://via.placeholder.com/150'
   @PrimaryGeneratedColumn()
   id: number
   @Column({ type: 'varchar', nullable: false, length: 255 })
@@ -37,8 +38,8 @@ export class Funko {
   quantity: number
   @IsString({ message: 'La imagen debe ser una cadena de texto' })
   @IsOptional()
-  @Column({ type: 'varchar', nullable: true, length: 255 })
-  image?: string
+  @Column({ type: 'text', default: Funko.IMAGE_DEFAULT })
+  image: string = Funko.IMAGE_DEFAULT
   @IsDate()
   @CreateDateColumn({
     type: 'timestamp',

@@ -1,10 +1,10 @@
 import { INestApplication, NotFoundException } from '@nestjs/common'
-import { FunkosService } from '../../src/funkos/services/funkos.service'
+import { FunkosService } from '../../src/rest/funkos/services/funkos.service'
 import { Test, TestingModule } from '@nestjs/testing'
-import { FunkosController } from '../../src/funkos/controller/funkos.controller'
-import { FunkoDto } from '../../src/funkos/dto/funko.dto'
-import { CreateFunkoDto } from '../../src/funkos/dto/create-funko.dto'
-import { UpdateFunkoDto } from '../../src/funkos/dto/update-funko.dto'
+import { FunkosController } from '../../src/rest/funkos/controller/funkos.controller'
+import { FunkoDto } from '../../src/rest/funkos/dto/funko.dto'
+import { CreateFunkoDto } from '../../src/rest/funkos/dto/create-funko.dto'
+import { UpdateFunkoDto } from '../../src/rest/funkos/dto/update-funko.dto'
 import * as request from 'supertest'
 
 describe('FunkosController (e2e)', () => {

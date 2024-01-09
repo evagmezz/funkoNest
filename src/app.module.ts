@@ -1,27 +1,28 @@
 import { Module } from '@nestjs/common'
-import { FunkosModule } from './funkos/funkos.module'
+import { FunkosModule } from './rest/funkos/funkos.module'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { CategoryModule } from './category/category.module'
-import { CategoryMapper } from './category/mapper/category-mapper'
-import { FunkoMapper } from './funkos/mapper/funko-mapper'
+import { CategoryModule } from './rest/category/category.module'
+import * as process from 'process'
+import { StorageModule } from './rest/storage/storage.module'
+import { ConfigModule } from '@nestjs/config'
 
 @Module({
   imports: [
     FunkosModule,
     CategoryModule,
+    StorageModule,
+    ConfigModule.forRoot(),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: 'localhost',
-      port: 5432,
-      username: 'admin',
-      password: 'admin1234',
-      database: 'funkos',
-      synchronize: true,
+      port: parseInt(process.env.POSTGRES_PORT) || 5432,
+      username: process.env.DATABASE_USER,
+      password: process.env.DATABASE_PASSWORD,
+      database: process.env.POSTGRES_DATABASE,
+      synchronize: process.env.NODE_ENV === 'dev',
       autoLoadEntities: true,
       entities: [`${__dirname}/**/*.entity{.ts,.js}`],
     }),
-    CategoryModule,
   ],
-  providers: [CategoryMapper, FunkoMapper],
 })
 export class AppModule {}

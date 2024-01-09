@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common'
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common'
 import { CreateFunkoDto } from '../dto/create-funko.dto'
 import { UpdateFunkoDto } from '../dto/update-funko.dto'
 import { Funko } from '../entities/funko.entity'
@@ -6,12 +11,15 @@ import { FunkoMapper } from '../mapper/funko-mapper'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { Category } from '../../category/entities/category.entity'
+import { StorageService } from '../../storage/services/storage.service'
+import { Request } from 'express'
 
 @Injectable()
 export class FunkosService {
   private logger = new Logger('FunkosService')
 
   constructor(
+    private readonly storageService: StorageService,
     private readonly funkoMapper: FunkoMapper,
     @InjectRepository(Funko)
     private readonly funkoRepository: Repository<Funko>,
@@ -85,12 +93,21 @@ export class FunkosService {
       .getOne()
     if (!funko) {
       throw new NotFoundException(`Funko con id: ${id} no encontrado`)
+    } else {
+      if (funko.image !== Funko.IMAGE_DEFAULT) {
+        try {
+          this.storageService.removeFile(funko.image)
+        } catch (error) {
+          this.logger.error(error)
+        }
+      }
     }
-    await this.funkoRepository.delete(funko)
+    const removed = await this.funkoRepository.remove(funko)
+    return this.funkoMapper.toDto(removed)
   }
 
   async isDeletedToTrue(id: number) {
-    this.logger.log(`Eliminando funko con id: ${id}`)
+    this.logger.log(`Eliminado logico de funko con id: ${id}`)
     const funko = await this.funkoRepository
       .createQueryBuilder('funko')
       .leftJoinAndSelect('funko.category', 'category')
@@ -121,5 +138,52 @@ export class FunkosService {
       )
     }
     return category
+  }
+
+  async updateImg(
+    id: number,
+    file: Express.Multer.File,
+    req: Request,
+    withUrl: boolean = true,
+  ) {
+    this.logger.log(`Updating image for funko with id: ${id}`)
+    const funko = await this.funkoRepository
+      .createQueryBuilder('funko')
+      .leftJoinAndSelect('funko.category', 'category')
+      .where('funko.id = :id and funko.isDeleted = :isDeleted', {
+        id,
+        isDeleted: false,
+      })
+      .getOne()
+    if (!funko) {
+      throw new NotFoundException(`Funko with id: ${id} not found`)
+    }
+    if (funko.image !== Funko.IMAGE_DEFAULT) {
+      this.logger.log(`Removing image for funko with id: ${id}`)
+      let imagePath = funko.image
+      if (withUrl) {
+        imagePath = this.storageService.getFileName(funko.image)
+      }
+      try {
+        this.storageService.removeFile(imagePath)
+      } catch (error) {
+        this.logger.error(error)
+      }
+    }
+    if (!file) {
+      throw new BadRequestException('File is required')
+    }
+    let filePath: string
+    if (withUrl) {
+      filePath = `${req.protocol}://${req.get('host')}$/storage/${
+        file.filename
+      }`
+    } else {
+      filePath = file.filename
+    }
+    funko.image = filePath
+
+    const funkoUpdated = await this.funkoRepository.save(funko)
+    return this.funkoMapper.toDto(funkoUpdated)
   }
 }
