@@ -117,23 +117,25 @@ export class FunkosService {
       .leftJoinAndSelect('funko.category', 'category')
       .where('funko.id = :id', { id })
       .getOne()
+
     if (!funko) {
       throw new NotFoundException(`Funko con id: ${id} no encontrado`)
-    } else {
-      if (funko.image !== Funko.IMAGE_DEFAULT) {
-        try {
-          this.storageService.removeFile(funko.image)
-        } catch (error) {
-          this.logger.error(error)
-        }
+    }
+
+    if (funko.image !== Funko.IMAGE_DEFAULT) {
+      try {
+        this.storageService.removeFile(funko.image)
+      } catch (error) {
+        this.logger.error(error)
       }
     }
+
     const removed = await this.funkoRepository.remove(funko)
     const funkoDto = this.funkoMapper.toDto(removed)
     this.notify('DELETE', funkoDto)
     await this.invalidateCacheKey(`funko-${id}`)
     await this.invalidateCacheKey('all_funkos')
-    return this.funkoMapper.toDto(removed)
+    return funkoDto
   }
 
   async isDeletedToTrue(id: number) {
@@ -233,14 +235,14 @@ export class FunkosService {
     return this.funkoMapper.toDto(funkoUpdated)
   }
 
-  private notify(type: 'CREATE' | 'UPDATE' | 'DELETE', data: FunkoDto) {
-    this.notificationsGateway.sendMessage(type, data)
-  }
-
   async invalidateCacheKey(keyPattern: string): Promise<void> {
     const cacheKeys = await this.cacheManager.store.keys()
     const keysToDelete = cacheKeys.filter((key) => key.startsWith(keyPattern))
     const promises = keysToDelete.map((key) => this.cacheManager.del(key))
     await Promise.all(promises)
+  }
+
+  private notify(type: 'CREATE' | 'UPDATE' | 'DELETE', data: FunkoDto) {
+    this.notificationsGateway.sendMessage(type, data)
   }
 }

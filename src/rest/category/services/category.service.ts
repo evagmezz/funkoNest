@@ -62,9 +62,10 @@ export class CategoryService {
     this.logger.log('Creando categoria...')
     const category = this.categoryMapper.toEntity(createCategoryDto)
     const categoryCreated = await this.categoryExists(category.name)
-    this.notify('CREATE', this.categoryMapper.toDto(categoryCreated))
+    const dto = this.categoryMapper.toDto(categoryCreated)
+    this.notify('CREATE', dto)
     await this.invalidateCacheKey('all_categories')
-    return await this.categoryRepository.save(categoryCreated)
+    return dto
   }
 
   async update(id: string, updateCategoryDto: UpdateCategoryDto) {
@@ -142,13 +143,15 @@ export class CategoryService {
       }
     }
   }
-  private notify(type: 'CREATE' | 'UPDATE' | 'DELETE', data: CategoryDto) {
-    this.notificationsGateway.sendMessage(type, data)
-  }
+
   async invalidateCacheKey(keyPattern: string): Promise<void> {
     const cacheKeys = await this.cacheManager.store.keys()
     const keysToDelete = cacheKeys.filter((key) => key.startsWith(keyPattern))
     const promises = keysToDelete.map((key) => this.cacheManager.del(key))
     await Promise.all(promises)
+  }
+
+  private notify(type: 'CREATE' | 'UPDATE' | 'DELETE', data: CategoryDto) {
+    this.notificationsGateway.sendMessage(type, data)
   }
 }

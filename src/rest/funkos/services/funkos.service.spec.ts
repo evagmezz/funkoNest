@@ -9,25 +9,46 @@ import { FunkoDto } from '../dto/funko.dto'
 import { NotFoundException } from '@nestjs/common'
 import { CreateFunkoDto } from '../dto/create-funko.dto'
 import { UpdateFunkoDto } from '../dto/update-funko.dto'
+import { Cache } from 'cache-manager'
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import { NotificationsModule } from '../../../websockets/notifications/notifications.module'
+import { StorageService } from '../../storage/services/storage.service'
 
 describe('FunkosService', () => {
   let service: FunkosService
   let funkoRepository: Repository<Funko>
   let categoryRepository: Repository<Category>
   let mapper: FunkoMapper
+  let cacheManager: Cache
+  let storageService: StorageService
 
   const mapperMock = {
     toDto: jest.fn(),
     toEntity: jest.fn(),
   }
+  const storageServiceMock = {
+    removeFile: jest.fn(),
+    getFileNameWithouUrl: jest.fn(),
+  }
+
+  const cacheManagerMock = {
+    get: jest.fn(() => Promise.resolve()),
+    set: jest.fn(() => Promise.resolve()),
+    store: {
+      keys: jest.fn(),
+    },
+  }
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
+      imports: [NotificationsModule],
       providers: [
         FunkosService,
         { provide: getRepositoryToken(Funko), useClass: Repository },
         { provide: getRepositoryToken(Category), useClass: Repository },
         { provide: FunkoMapper, useValue: mapperMock },
+        { provide: StorageService, useValue: storageServiceMock },
+        { provide: CACHE_MANAGER, useValue: cacheManagerMock },
       ],
     }).compile()
 
@@ -37,6 +58,8 @@ describe('FunkosService', () => {
       getRepositoryToken(Category),
     )
     mapper = module.get<FunkoMapper>(FunkoMapper)
+    storageService = module.get<StorageService>(StorageService)
+    cacheManager = module.get<Cache>(CACHE_MANAGER)
   })
 
   it('should be defined', () => {
@@ -45,6 +68,9 @@ describe('FunkosService', () => {
   describe('findAll', () => {
     it('should return an array of funkos', async () => {
       const funkosDto: FunkoDto[] = []
+      jest.spyOn(cacheManager, 'get').mockResolvedValue(Promise.resolve(null))
+      jest.spyOn(cacheManager, 'set').mockResolvedValue()
+
       const mockQuery = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
@@ -57,21 +83,28 @@ describe('FunkosService', () => {
 
       jest.spyOn(mapper, 'toDto').mockReturnValue(funkosDto[0])
       expect(await service.findAll()).toEqual(funkosDto)
+      expect(cacheManager.get).toHaveBeenCalled()
+      expect(cacheManager.set).toHaveBeenCalled()
     })
   })
   describe('findOne', () => {
     it('should return a funko', async () => {
       const funkoDto = new FunkoDto()
+      jest.spyOn(cacheManager, 'get').mockResolvedValue(funkoDto)
       const mockQuery = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(funkoDto),
       }
+
+      jest.spyOn(cacheManager, 'get').mockResolvedValue(Promise.resolve(null))
+
       jest
         .spyOn(funkoRepository, 'createQueryBuilder')
         .mockReturnValue(mockQuery as any)
-
       jest.spyOn(mapper, 'toDto').mockReturnValue(funkoDto)
+      jest.spyOn(cacheManager, 'set').mockResolvedValue()
+
       expect(await service.findOne(1)).toEqual(funkoDto)
     })
     it('should throw a NotFoundException', async () => {
@@ -95,9 +128,9 @@ describe('FunkosService', () => {
 
       jest.spyOn(service, 'checkCategory').mockResolvedValue(category)
       jest.spyOn(mapper, 'toEntity').mockReturnValue(funko)
+      jest.spyOn(cacheManager.store, 'keys').mockResolvedValue([])
       jest.spyOn(funkoRepository, 'save').mockResolvedValue(funko)
       jest.spyOn(mapper, 'toDto').mockReturnValue(funkoDto)
-
       expect(await service.create(createFunkoDto)).toEqual(funkoDto)
     })
     it('should throw a BadRequestException because of empty name', async () => {
@@ -234,5 +267,8 @@ describe('FunkosService', () => {
         NotFoundException,
       )
     })
+  })
+  describe('updateImg', () => {
+    it('should update the image of a funko', async () => {})
   })
 })

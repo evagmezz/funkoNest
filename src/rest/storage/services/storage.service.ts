@@ -5,9 +5,9 @@ import {
   NotFoundException,
 } from '@nestjs/common'
 import * as fs from 'fs'
+import * as path from 'path'
 import { join } from 'path'
 import * as process from 'process'
-import * as path from 'path'
 
 @Injectable()
 export class StorageService {
@@ -28,6 +28,7 @@ export class StorageService {
       }
     }
   }
+
   findFile(filename: string): string {
     this.logger.log(`Searching for file ${filename}`)
     const file = join(

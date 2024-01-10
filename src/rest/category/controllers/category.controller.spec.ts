@@ -2,7 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing'
 import { CategoryController } from './category.controller'
 import { CategoryService } from '../services/category.service'
 import { Category } from '../entities/category.entity'
-import { BadRequestException, NotFoundException } from '@nestjs/common'
+import { NotFoundException } from '@nestjs/common'
+import { CacheModule } from '@nestjs/cache-manager'
 
 describe('CategoryController', () => {
   let controller: CategoryController
@@ -17,6 +18,7 @@ describe('CategoryController', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
+      imports: [CacheModule.register()],
       controllers: [CategoryController],
       providers: [{ provide: CategoryService, useValue: mockCategoryService }],
     }).compile()

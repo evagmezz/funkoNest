@@ -15,7 +15,6 @@ import { CreateCategoryDto } from '../dto/create-category.dto'
 import { UpdateCategoryDto } from '../dto/update-category.dto'
 import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager'
 
-
 @Controller('api/category')
 @UseInterceptors(CacheInterceptor)
 export class CategoryController {
