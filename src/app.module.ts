@@ -9,11 +9,11 @@ import { CacheModule } from '@nestjs/cache-manager'
 
 @Module({
   imports: [
+    CacheModule.register(),
     FunkosModule,
     CategoryModule,
     StorageModule,
     ConfigModule.forRoot(),
-    CacheModule.register(),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: 'localhost',

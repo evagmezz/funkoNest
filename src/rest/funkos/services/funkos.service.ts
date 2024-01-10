@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -15,6 +16,8 @@ import { StorageService } from '../../storage/services/storage.service'
 import { Request } from 'express'
 import { NotificationsGateway } from '../../../websockets/notifications/notifications.gateway'
 import { FunkoDto } from '../dto/funko.dto'
+import { Cache } from 'cache-manager'
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
 
 @Injectable()
 export class FunkosService {
@@ -28,21 +31,33 @@ export class FunkosService {
     private readonly funkoRepository: Repository<Funko>,
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async findAll() {
     this.logger.log('Buscando todos los funkos...')
+    const cache: FunkoDto[] = await this.cacheManager.get('funkos')
+    if (cache) {
+      this.logger.log('Funkos encontrados en cache')
+      return cache
+    }
     const funkos = await this.funkoRepository
       .createQueryBuilder('funko')
       .leftJoinAndSelect('funko.category', 'category')
       .where('funko.isDeleted = :isDeleted', { isDeleted: false })
       .orderBy('funko.id', 'ASC')
       .getMany()
+    await this.cacheManager.set('funkos', funkos, 60)
     return funkos.map((funko) => this.funkoMapper.toDto(funko))
   }
 
   async findOne(id: number) {
     this.logger.log(`Buscando funko con id: ${id}`)
+    const cache: FunkoDto = await this.cacheManager.get(`funko-${id}`)
+    if (cache) {
+      this.logger.log(`Funko con id: ${id} encontrado en cache`)
+      return cache
+    }
     const funko = await this.funkoRepository
       .createQueryBuilder('funko')
       .leftJoinAndSelect('funko.category', 'category')
@@ -51,6 +66,7 @@ export class FunkosService {
     if (!funko) {
       throw new NotFoundException(`Funko con id: ${id} no encontrado`)
     } else {
+      await this.cacheManager.set(`funko-${id}`, funko, 60)
       return this.funkoMapper.toDto(funko)
     }
   }
@@ -62,6 +78,7 @@ export class FunkosService {
     const funkoCreated = await this.funkoRepository.save(funko)
     const funkoDto = this.funkoMapper.toDto(funkoCreated)
     this.notify('CREATE', funkoDto)
+    await this.invalidateCacheKey('all_funkos')
     return this.funkoMapper.toDto(funkoCreated)
   }
 
@@ -88,6 +105,8 @@ export class FunkosService {
     })
     const funkoDto = this.funkoMapper.toDto(funkoUpdated)
     this.notify('UPDATE', funkoDto)
+    await this.invalidateCacheKey(`funko-${id}`)
+    await this.invalidateCacheKey('all_funkos')
     return this.funkoMapper.toDto(funkoUpdated)
   }
 
@@ -112,6 +131,8 @@ export class FunkosService {
     const removed = await this.funkoRepository.remove(funko)
     const funkoDto = this.funkoMapper.toDto(removed)
     this.notify('DELETE', funkoDto)
+    await this.invalidateCacheKey(`funko-${id}`)
+    await this.invalidateCacheKey('all_funkos')
     return this.funkoMapper.toDto(removed)
   }
 
@@ -131,11 +152,20 @@ export class FunkosService {
     })
     const funkoDto = this.funkoMapper.toDto(funkoDeleted)
     this.notify('DELETE', funkoDto)
+    await this.invalidateCacheKey(`funko-${id}`)
+    await this.invalidateCacheKey('all_funkos')
     return this.funkoMapper.toDto(funkoDeleted)
   }
 
   async checkCategory(nameCategory: string) {
     this.logger.log(`Buscando categoria con nombre: ${nameCategory}`)
+    const cache: Category = await this.cacheManager.get(
+      `category_${nameCategory}`,
+    )
+    if (cache) {
+      this.logger.log('Cache hit')
+      return cache
+    }
     const category = await this.categoryRepository
       .createQueryBuilder('category')
       .where('category.name = :name and' + ' category.isActive = :isActive', {
@@ -148,6 +178,7 @@ export class FunkosService {
         `Categoria con nombre: ${nameCategory} no encontrada`,
       )
     }
+    await this.cacheManager.set(`category_${nameCategory}`, category, 60)
     return category
   }
 
@@ -197,10 +228,19 @@ export class FunkosService {
     const funkoUpdated = await this.funkoRepository.save(funko)
     const funkoDto = this.funkoMapper.toDto(funkoUpdated)
     this.notify('UPDATE', funkoDto)
+    await this.invalidateCacheKey(`funko-${id}`)
+    await this.invalidateCacheKey('all_funkos')
     return this.funkoMapper.toDto(funkoUpdated)
   }
 
   private notify(type: 'CREATE' | 'UPDATE' | 'DELETE', data: FunkoDto) {
     this.notificationsGateway.sendMessage(type, data)
+  }
+
+  async invalidateCacheKey(keyPattern: string): Promise<void> {
+    const cacheKeys = await this.cacheManager.store.keys()
+    const keysToDelete = cacheKeys.filter((key) => key.startsWith(keyPattern))
+    const promises = keysToDelete.map((key) => this.cacheManager.del(key))
+    await Promise.all(promises)
   }
 }

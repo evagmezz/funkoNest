@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -12,29 +13,48 @@ import { Repository } from 'typeorm'
 import { Category } from '../entities/category.entity'
 import { CategoryDto } from '../dto/category.dto'
 import { NotificationsGateway } from '../../../websockets/notifications/notifications.gateway'
+import { Cache } from 'cache-manager'
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
 
 @Injectable()
 export class CategoryService {
   private logger = new Logger('CategoryService')
-
-  async findAll() {
-    this.logger.log('Buscando todas las categorias...')
-    return await this.categoryRepository.find()
-  }
 
   constructor(
     private readonly categoryMapper: CategoryMapper,
     private readonly notificationsGateway: NotificationsGateway,
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
+
+  async findAll() {
+    this.logger.log('Buscando todas las categorias...')
+    const cache: CategoryDto[] = await this.cacheManager.get('categories')
+    if (cache) {
+      this.logger.log('Cache hit')
+      return cache
+    }
+    await this.cacheManager.set(
+      'all_categories',
+      await this.categoryRepository.find(),
+      60,
+    )
+    return await this.categoryRepository.find()
+  }
 
   async findOne(id: string) {
     this.logger.log(`Find one categoria by id:${id}`)
+    const cache: CategoryDto = await this.cacheManager.get(`category-${id}`)
+    if (cache) {
+      this.logger.log('Cache hit')
+      return cache
+    }
     const category = await this.categoryRepository.findOneBy({ id })
     if (!category) {
       throw new NotFoundException(`Category with id ${id} not found`)
     }
+    await this.cacheManager.set(`category-${id}`, category, 60)
     return category
   }
 
@@ -43,6 +63,7 @@ export class CategoryService {
     const category = this.categoryMapper.toEntity(createCategoryDto)
     const categoryCreated = await this.categoryExists(category.name)
     this.notify('CREATE', this.categoryMapper.toDto(categoryCreated))
+    await this.invalidateCacheKey('all_categories')
     return await this.categoryRepository.save(categoryCreated)
   }
 
@@ -59,12 +80,14 @@ export class CategoryService {
           `Categoria ${updateCategoryDto.name} ya existe`,
         )
       }
+      await this.invalidateCacheKey(`category_${id}`)
+      await this.invalidateCacheKey('all_categories')
+      this.notify('UPDATE', this.categoryMapper.toDto(categoryToUpdate))
+      return await this.categoryRepository.save({
+        ...categoryToUpdate,
+        ...updateCategoryDto,
+      })
     }
-    this.notify('UPDATE', this.categoryMapper.toDto(categoryToUpdate))
-    return await this.categoryRepository.save({
-      ...categoryToUpdate,
-      ...updateCategoryDto,
-    })
   }
 
   async remove(id: string) {
@@ -73,6 +96,8 @@ export class CategoryService {
       throw new NotFoundException(`Categoria con id ${id} no encontrada`)
     } else {
       this.notify('DELETE', this.categoryMapper.toDto(category))
+      await this.invalidateCacheKey(`category_${id}`)
+      await this.invalidateCacheKey('all_categories')
       return await this.categoryRepository.remove(category)
     }
   }
@@ -83,6 +108,8 @@ export class CategoryService {
       throw new NotFoundException(`Categoria con id ${id} no encontrada`)
     } else {
       this.notify('UPDATE', this.categoryMapper.toDto(category))
+      await this.invalidateCacheKey(`category_${id}`)
+      await this.invalidateCacheKey('all_categories')
       return await this.categoryRepository.save({
         ...category,
         isActive: false,
@@ -91,6 +118,11 @@ export class CategoryService {
   }
 
   async categoryExists(name: string) {
+    const cache: Category = await this.cacheManager.get(`category_name_${name}`)
+    if (cache) {
+      this.logger.log('Cache hit')
+      return cache
+    }
     const category = await this.categoryRepository
       .createQueryBuilder('category')
       .where('LOWER(name) = LOWER(:name)', { name })
@@ -105,11 +137,18 @@ export class CategoryService {
         throw new BadRequestException(`Categoria con nombre ${name} ya existe`)
       } else if (category.isActive === false) {
         category.isActive = true
+        await this.cacheManager.set(`category_name_${name}`, category, 60)
         return await this.categoryRepository.save(category)
       }
     }
   }
   private notify(type: 'CREATE' | 'UPDATE' | 'DELETE', data: CategoryDto) {
     this.notificationsGateway.sendMessage(type, data)
+  }
+  async invalidateCacheKey(keyPattern: string): Promise<void> {
+    const cacheKeys = await this.cacheManager.store.keys()
+    const keysToDelete = cacheKeys.filter((key) => key.startsWith(keyPattern))
+    const promises = keysToDelete.map((key) => this.cacheManager.del(key))
+    await Promise.all(promises)
   }
 }

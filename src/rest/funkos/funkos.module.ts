@@ -8,10 +8,11 @@ import { Category } from '../category/entities/category.entity'
 import { StorageModule } from '../storage/storage.module'
 import { CacheModule } from '@nestjs/cache-manager'
 import { NotificationsModule } from '../../websockets/notifications/notifications.module'
+import { NotificationsGateway } from '../../websockets/notifications/notifications.gateway'
 
 @Module({
   controllers: [FunkosController],
-  providers: [FunkosService, FunkoMapper],
+  providers: [FunkosService, FunkoMapper, NotificationsGateway],
   imports: [
     TypeOrmModule.forFeature([Funko]),
     TypeOrmModule.forFeature([Category]),

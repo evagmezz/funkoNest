@@ -24,17 +24,23 @@ import { FunkoExistsGuard } from '../guards/funko-exists-guard'
 import { extname, parse } from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { Request } from 'express'
+import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager'
 
 @Controller('api/funkos')
+@UseInterceptors(CacheInterceptor)
 export class FunkosController {
   constructor(private readonly funkosService: FunkosService) {}
 
   @Get()
+  @CacheKey('all_funkos')
+  @CacheTTL(60)
   findAll() {
     return this.funkosService.findAll()
   }
 
   @Get(':id')
+  @CacheKey('one_funko')
+  @CacheTTL(60)
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.funkosService.findOne(id)
   }
