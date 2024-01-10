@@ -5,7 +5,6 @@ import { Category } from '../entities/category.entity'
 import { CategoryMapper } from '../mapper/category-mapper'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { CreateCategoryDto } from '../dto/create-category.dto'
-import { UpdateCategoryDto } from '../dto/update-category.dto'
 import { BadRequestException, NotFoundException } from '@nestjs/common'
 import { NotificationsGateway } from '../../../websockets/notifications/notifications.gateway'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
@@ -20,6 +19,7 @@ describe('CategoryService', () => {
 
   const mapperMock = {
     toEntity: jest.fn(),
+    toDto: jest.fn(),
   }
 
   const cacheMock = {
@@ -61,6 +61,7 @@ describe('CategoryService', () => {
     it('should return an array of categories', async () => {
       const categories = [new Category()]
       jest.spyOn(repository, 'find').mockResolvedValue(categories)
+      jest.spyOn(cacheMock.store, 'keys').mockResolvedValue([])
       expect(await service.findAll()).toEqual(categories)
     })
   })
@@ -72,6 +73,7 @@ describe('CategoryService', () => {
         await service.findOne('d69cf3db-b77d-4181-b3cd-5ca8107fb6a7'),
       ).toBe(category)
     })
+    jest.spyOn(cacheMock.store, 'keys').mockResolvedValue([])
     it('should throw a NotFoundException', async () => {
       jest.spyOn(repository, 'findOneBy').mockResolvedValue(undefined)
       await expect(
@@ -96,13 +98,13 @@ describe('CategoryService', () => {
         .mockReturnValue(mockQuery as any)
       jest.spyOn(mapper, 'toEntity').mockReturnValue(category)
       jest.spyOn(repository, 'save').mockResolvedValue(category)
+      jest.spyOn(mapper, 'toDto').mockReturnValue(dto)
       jest.spyOn(service, 'categoryExists').mockResolvedValue(null)
       jest.spyOn(notification, 'sendMessage').mockImplementation()
       jest.spyOn(cacheMock.store, 'keys').mockResolvedValue([])
 
-      expect(await service.create(new CreateCategoryDto())).toBe(category)
-      expect(repository.save).toHaveBeenCalled()
-      expect(mapper.toEntity).toHaveBeenCalled()
+      const result = await service.create(dto)
+      expect(result).toEqual(dto)
     })
     it('should throw a BadRequestException because of empty  name', async () => {
       const createCategory = new CreateCategoryDto()
@@ -115,20 +117,25 @@ describe('CategoryService', () => {
       const category = new Category()
       category.name = 'PC'
 
+      const dto = new CategoryDto()
+
       const mockQuery = {
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(category),
       }
-      const updateCategory = new UpdateCategoryDto()
 
+      jest.spyOn(notificationMock, 'sendMessage').mockResolvedValue('UPDATE')
       jest
         .spyOn(repository, 'createQueryBuilder')
         .mockReturnValue(mockQuery as any)
       jest.spyOn(repository, 'findOneBy').mockResolvedValue(category)
       jest.spyOn(repository, 'save').mockResolvedValue(category)
+      jest.spyOn(mapper, 'toDto').mockReturnValue(dto)
+      jest.spyOn(notification, 'sendMessage').mockImplementation()
+      jest.spyOn(cacheMock.store, 'keys').mockResolvedValue([])
 
-      const result = await service.update('uuid', updateCategory)
-      expect(result).toEqual(category)
+      const result = await service.update(category.id, category)
+      expect(dto).toEqual(result)
     })
     it('should throw a BadRequestException because of empty name', async () => {
       const createCategory = new CreateCategoryDto()

@@ -81,13 +81,15 @@ export class CategoryService {
           `Categoria ${updateCategoryDto.name} ya existe`,
         )
       }
-      await this.invalidateCacheKey(`category_${id}`)
-      await this.invalidateCacheKey('all_categories')
-      this.notify('UPDATE', this.categoryMapper.toDto(categoryToUpdate))
-      return await this.categoryRepository.save({
+      const saved = await this.categoryRepository.save({
         ...categoryToUpdate,
         ...updateCategoryDto,
       })
+      const dto = this.categoryMapper.toDto(saved)
+      this.notify('UPDATE', dto)
+      await this.invalidateCacheKey(`category_${id}`)
+      await this.invalidateCacheKey('all_categories')
+      return dto
     }
   }
 
