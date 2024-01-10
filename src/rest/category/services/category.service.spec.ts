@@ -7,14 +7,29 @@ import { getRepositoryToken } from '@nestjs/typeorm'
 import { CreateCategoryDto } from '../dto/create-category.dto'
 import { UpdateCategoryDto } from '../dto/update-category.dto'
 import { BadRequestException, NotFoundException } from '@nestjs/common'
+import { NotificationsGateway } from '../../../websockets/notifications/notifications.gateway'
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import { CategoryDto } from '../dto/category.dto'
 
 describe('CategoryService', () => {
   let service: CategoryService
   let repository: Repository<Category>
   let mapper: CategoryMapper
+  let notification: NotificationsGateway
+  let cache: Cache
 
   const mapperMock = {
     toEntity: jest.fn(),
+  }
+
+  const cacheMock = {
+    get: jest.fn(),
+    set: jest.fn(),
+    store: { keys: jest.fn() },
+  }
+
+  const notificationMock = {
+    sendMessage: jest.fn(),
   }
 
   beforeEach(async () => {
@@ -26,12 +41,16 @@ describe('CategoryService', () => {
           provide: getRepositoryToken(Category),
           useClass: Repository,
         },
+        { provide: NotificationsGateway, useValue: notificationMock },
+        { provide: CACHE_MANAGER, useValue: cacheMock },
       ],
     }).compile()
 
     service = module.get<CategoryService>(CategoryService)
     repository = module.get<Repository<Category>>(getRepositoryToken(Category))
     mapper = module.get<CategoryMapper>(CategoryMapper)
+    notification = module.get<NotificationsGateway>(NotificationsGateway)
+    cache = module.get<Cache>(CACHE_MANAGER)
   })
 
   it('should be defined', () => {
@@ -65,16 +84,21 @@ describe('CategoryService', () => {
       const category = new Category()
       category.name = 'MARVEL'
 
+      const dto = new CategoryDto()
+
       const mockQuery = {
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(undefined),
       }
+      jest.spyOn(notificationMock, 'sendMessage').mockResolvedValue('CREATE')
       jest
         .spyOn(repository, 'createQueryBuilder')
         .mockReturnValue(mockQuery as any)
       jest.spyOn(mapper, 'toEntity').mockReturnValue(category)
       jest.spyOn(repository, 'save').mockResolvedValue(category)
       jest.spyOn(service, 'categoryExists').mockResolvedValue(null)
+      jest.spyOn(notification, 'sendMessage').mockImplementation()
+      jest.spyOn(cacheMock.store, 'keys').mockResolvedValue([])
 
       expect(await service.create(new CreateCategoryDto())).toBe(category)
       expect(repository.save).toHaveBeenCalled()
