@@ -13,6 +13,7 @@ import { Cache } from 'cache-manager'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { NotificationsModule } from '../../../websockets/notifications/notifications.module'
 import { StorageService } from '../../storage/services/storage.service'
+import { NotificationsGateway } from '../../../websockets/notifications/notifications.gateway'
 
 describe('FunkosService', () => {
   let service: FunkosService
@@ -21,6 +22,7 @@ describe('FunkosService', () => {
   let mapper: FunkoMapper
   let cacheManager: Cache
   let storageService: StorageService
+  let notification: NotificationsGateway
 
   const mapperMock = {
     toDto: jest.fn(),
@@ -39,6 +41,10 @@ describe('FunkosService', () => {
     },
   }
 
+  const notificationMock = {
+    sendMessage: jest.fn(),
+  }
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [NotificationsModule],
@@ -49,6 +55,7 @@ describe('FunkosService', () => {
         { provide: FunkoMapper, useValue: mapperMock },
         { provide: StorageService, useValue: storageServiceMock },
         { provide: CACHE_MANAGER, useValue: cacheManagerMock },
+        { provide: NotificationsGateway, useValue: notificationMock },
       ],
     }).compile()
 
@@ -60,6 +67,7 @@ describe('FunkosService', () => {
     mapper = module.get<FunkoMapper>(FunkoMapper)
     storageService = module.get<StorageService>(StorageService)
     cacheManager = module.get<Cache>(CACHE_MANAGER)
+    notification = module.get<NotificationsGateway>(NotificationsGateway)
   })
 
   it('should be defined', () => {
@@ -68,8 +76,7 @@ describe('FunkosService', () => {
   describe('findAll', () => {
     it('should return an array of funkos', async () => {
       const funkosDto: FunkoDto[] = []
-      jest.spyOn(cacheManager, 'get').mockResolvedValue(Promise.resolve(null))
-      jest.spyOn(cacheManager, 'set').mockResolvedValue()
+      jest.spyOn(cacheManagerMock.store, 'keys').mockResolvedValue([])
 
       const mockQuery = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
@@ -97,8 +104,7 @@ describe('FunkosService', () => {
         getOne: jest.fn().mockResolvedValue(funkoDto),
       }
 
-      jest.spyOn(cacheManager, 'get').mockResolvedValue(Promise.resolve(null))
-
+      jest.spyOn(cacheManagerMock.store, 'keys').mockResolvedValue([])
       jest
         .spyOn(funkoRepository, 'createQueryBuilder')
         .mockReturnValue(mockQuery as any)
@@ -110,8 +116,9 @@ describe('FunkosService', () => {
     it('should throw a NotFoundException', async () => {
       const mockQuery = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
-        getOne: jest.fn().mockResolvedValue(undefined),
+        getOne: jest.fn().mockResolvedValue(null),
       }
       jest
         .spyOn(funkoRepository, 'createQueryBuilder')
@@ -126,11 +133,14 @@ describe('FunkosService', () => {
       const funko = new Funko()
       const funkoDto = new FunkoDto()
 
+      jest.spyOn(notificationMock, 'sendMessage').mockResolvedValue('CREATE')
       jest.spyOn(service, 'checkCategory').mockResolvedValue(category)
       jest.spyOn(mapper, 'toEntity').mockReturnValue(funko)
-      jest.spyOn(cacheManager.store, 'keys').mockResolvedValue([])
-      jest.spyOn(funkoRepository, 'save').mockResolvedValue(funko)
+      jest.spyOn(notification, 'sendMessage').mockImplementation()
       jest.spyOn(mapper, 'toDto').mockReturnValue(funkoDto)
+      jest.spyOn(cacheManagerMock.store, 'keys').mockResolvedValue([])
+      jest.spyOn(funkoRepository, 'save').mockResolvedValue(funko)
+
       expect(await service.create(createFunkoDto)).toEqual(funkoDto)
     })
     it('should throw a BadRequestException because of empty name', async () => {
@@ -160,12 +170,16 @@ describe('FunkosService', () => {
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(funko),
       }
+
+      jest.spyOn(notificationMock, 'sendMessage').mockResolvedValue('UPDATE')
       jest
         .spyOn(funkoRepository, 'createQueryBuilder')
         .mockReturnValue(mockQuery as any)
       jest.spyOn(service, 'checkCategory').mockResolvedValue(category)
       jest.spyOn(funkoRepository, 'save').mockResolvedValue(funko)
       jest.spyOn(mapper, 'toDto').mockReturnValue(funkoDto)
+      jest.spyOn(notification, 'sendMessage').mockImplementation()
+      jest.spyOn(cacheManagerMock.store, 'keys').mockResolvedValue([])
 
       expect(await service.update(1, updateFunkoDto)).toEqual(funkoDto)
     })
@@ -188,6 +202,7 @@ describe('FunkosService', () => {
   describe('remove', () => {
     it('should remove a funko', async () => {
       const funko = new Funko()
+      const dto = new FunkoDto()
       const mockQuery = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
@@ -196,9 +211,12 @@ describe('FunkosService', () => {
       jest
         .spyOn(funkoRepository, 'createQueryBuilder')
         .mockReturnValue(mockQuery as any)
-      jest.spyOn(funkoRepository, 'delete').mockResolvedValue(undefined)
+      jest.spyOn(funkoRepository, 'remove').mockResolvedValue(funko)
+      jest.spyOn(mapper, 'toDto').mockReturnValue(dto)
+      jest.spyOn(cacheManagerMock.store, 'keys').mockResolvedValue([])
+      jest.spyOn(notification, 'sendMessage').mockImplementation()
 
-      expect(await service.remove(1)).toEqual(undefined)
+      expect(await service.remove(1)).toEqual(dto)
     })
     it('should throw a NotFoundException', async () => {
       const mockQuery = {
@@ -226,6 +244,8 @@ describe('FunkosService', () => {
         .mockReturnValue(mockQuery as any)
       jest.spyOn(funkoRepository, 'save').mockResolvedValue(funko)
       jest.spyOn(mapper, 'toDto').mockReturnValue(funkoDto)
+      jest.spyOn(cacheManagerMock.store, 'keys').mockResolvedValue([])
+      jest.spyOn(notification, 'sendMessage').mockImplementation()
 
       expect(await service.isDeletedToTrue(1)).toEqual(funkoDto)
     })
@@ -253,7 +273,7 @@ describe('FunkosService', () => {
       jest
         .spyOn(categoryRepository, 'createQueryBuilder')
         .mockReturnValue(mockQuery as any)
-      expect(await service.checkCategory('1')).toEqual(category)
+      expect(await service.checkCategory('Category')).toEqual(category)
     })
     it('should throw a NotFoundException', async () => {
       const mockQuery = {
