@@ -10,10 +10,6 @@ import { CategoryMapper } from '../mapper/category-mapper'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { Category } from '../entities/category.entity'
-import {
-  Notification,
-  NotificationType,
-} from '../../../websockets/notifications/entities/notification.entity'
 import { CategoryDto } from '../dto/category.dto'
 import { NotificationsGateway } from '../../../websockets/notifications/notifications.gateway'
 
@@ -46,10 +42,7 @@ export class CategoryService {
     this.logger.log('Creando categoria...')
     const category = this.categoryMapper.toEntity(createCategoryDto)
     const categoryCreated = await this.categoryExists(category.name)
-    this.notify(
-      NotificationType.CREATE,
-      this.categoryMapper.toDto(categoryCreated),
-    )
+    this.notify('CREATE', this.categoryMapper.toDto(categoryCreated))
     return await this.categoryRepository.save(categoryCreated)
   }
 
@@ -67,10 +60,7 @@ export class CategoryService {
         )
       }
     }
-    this.notify(
-      NotificationType.UPDATE,
-      this.categoryMapper.toDto(categoryToUpdate),
-    )
+    this.notify('UPDATE', this.categoryMapper.toDto(categoryToUpdate))
     return await this.categoryRepository.save({
       ...categoryToUpdate,
       ...updateCategoryDto,
@@ -82,7 +72,7 @@ export class CategoryService {
     if (!category) {
       throw new NotFoundException(`Categoria con id ${id} no encontrada`)
     } else {
-      this.notify(NotificationType.DELETE, this.categoryMapper.toDto(category))
+      this.notify('DELETE', this.categoryMapper.toDto(category))
       return await this.categoryRepository.remove(category)
     }
   }
@@ -92,7 +82,7 @@ export class CategoryService {
     if (!category) {
       throw new NotFoundException(`Categoria con id ${id} no encontrada`)
     } else {
-      this.notify(NotificationType.UPDATE, this.categoryMapper.toDto(category))
+      this.notify('UPDATE', this.categoryMapper.toDto(category))
       return await this.categoryRepository.save({
         ...category,
         isActive: false,
@@ -119,13 +109,7 @@ export class CategoryService {
       }
     }
   }
-  private notify(type: NotificationType, data: CategoryDto) {
-    const notification = new Notification<CategoryDto>(
-      'categories',
-      type,
-      data,
-      new Date(),
-    )
-    this.notificationsGateway.sendMessage(type, notification)
+  private notify(type: 'CREATE' | 'UPDATE' | 'DELETE', data: CategoryDto) {
+    this.notificationsGateway.sendMessage(type, data)
   }
 }

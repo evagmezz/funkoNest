@@ -14,10 +14,6 @@ import { Category } from '../../category/entities/category.entity'
 import { StorageService } from '../../storage/services/storage.service'
 import { Request } from 'express'
 import { NotificationsGateway } from '../../../websockets/notifications/notifications.gateway'
-import {
-  Notification,
-  NotificationType,
-} from '../../../websockets/notifications/entities/notification.entity'
 import { FunkoDto } from '../dto/funko.dto'
 
 @Injectable()
@@ -65,7 +61,7 @@ export class FunkosService {
     const funko = this.funkoMapper.toEntity(createFunkoDto, category)
     const funkoCreated = await this.funkoRepository.save(funko)
     const funkoDto = this.funkoMapper.toDto(funkoCreated)
-    this.notify(NotificationType.CREATE, funkoDto)
+    this.notify('CREATE', funkoDto)
     return this.funkoMapper.toDto(funkoCreated)
   }
 
@@ -91,7 +87,7 @@ export class FunkosService {
       category,
     })
     const funkoDto = this.funkoMapper.toDto(funkoUpdated)
-    this.notify(NotificationType.UPDATE, funkoDto)
+    this.notify('UPDATE', funkoDto)
     return this.funkoMapper.toDto(funkoUpdated)
   }
 
@@ -115,7 +111,7 @@ export class FunkosService {
     }
     const removed = await this.funkoRepository.remove(funko)
     const funkoDto = this.funkoMapper.toDto(removed)
-    this.notify(NotificationType.DELETE, funkoDto)
+    this.notify('DELETE', funkoDto)
     return this.funkoMapper.toDto(removed)
   }
 
@@ -134,7 +130,7 @@ export class FunkosService {
       isDeleted: true,
     })
     const funkoDto = this.funkoMapper.toDto(funkoDeleted)
-    this.notify(NotificationType.DELETE, funkoDto)
+    this.notify('DELETE', funkoDto)
     return this.funkoMapper.toDto(funkoDeleted)
   }
 
@@ -200,17 +196,11 @@ export class FunkosService {
 
     const funkoUpdated = await this.funkoRepository.save(funko)
     const funkoDto = this.funkoMapper.toDto(funkoUpdated)
-    this.notify(NotificationType.UPDATE, funkoDto)
+    this.notify('UPDATE', funkoDto)
     return this.funkoMapper.toDto(funkoUpdated)
   }
 
-  private notify(type: NotificationType, data: FunkoDto) {
-    const notification = new Notification<FunkoDto>(
-      'funkos',
-      type,
-      data,
-      new Date(),
-    )
-    this.notificationsGateway.sendMessage(type, notification)
+  private notify(type: 'CREATE' | 'UPDATE' | 'DELETE', data: FunkoDto) {
+    this.notificationsGateway.sendMessage(type, data)
   }
 }

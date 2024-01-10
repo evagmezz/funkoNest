@@ -3,7 +3,6 @@ import { Server, Socket } from 'socket.io'
 import { Logger } from '@nestjs/common'
 import { FunkoDto } from '../../rest/funkos/dto/funko.dto'
 import { CategoryDto } from '../../rest/category/dto/category.dto'
-import { Notification } from './entities/notification.entity'
 
 @WebSocketGateway({})
 export class NotificationsGateway {
@@ -12,10 +11,7 @@ export class NotificationsGateway {
 
   private readonly logger = new Logger(NotificationsGateway.name)
 
-  sendMessage(
-    type: string,
-    notification: Notification<FunkoDto | CategoryDto>,
-  ) {
+  sendMessage(type: string, notification: FunkoDto | CategoryDto) {
     if (this.isFunko(notification)) {
       this.server.emit(`FUNKO_${type}`, notification)
     } else {
@@ -24,9 +20,9 @@ export class NotificationsGateway {
   }
 
   private isFunko(
-    notification: Notification<FunkoDto | CategoryDto>,
-  ): notification is Notification<FunkoDto> {
-    return (notification as unknown as FunkoDto).image !== undefined
+    notification: FunkoDto | CategoryDto,
+  ): notification is FunkoDto {
+    return (notification as FunkoDto).image !== undefined
   }
 
   private handleConnection(client: Socket) {
