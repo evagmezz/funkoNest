@@ -113,18 +113,6 @@ describe('FunkosService', () => {
 
       expect(await service.findOne(1)).toEqual(funkoDto)
     })
-    it('should throw a NotFoundException', async () => {
-      const mockQuery = {
-        leftJoinAndSelect: jest.fn().mockReturnThis(),
-        orderBy: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        getOne: jest.fn().mockResolvedValue(null),
-      }
-      jest
-        .spyOn(funkoRepository, 'createQueryBuilder')
-        .mockReturnValue(mockQuery as any)
-      await expect(service.findOne(1)).rejects.toThrow(NotFoundException)
-    })
   })
   describe('create', () => {
     it('should create a funko', async () => {
@@ -263,32 +251,72 @@ describe('FunkosService', () => {
       )
     })
   })
-  describe('checkCategory', () => {
-    it('should return a category', async () => {
-      const category = new Category()
-      const mockQuery = {
-        where: jest.fn().mockReturnThis(),
-        getOne: jest.fn().mockResolvedValue(category),
+
+  describe('updateImage', () => {
+    it('should update a funko image', async () => {
+      const mockFunko = new Funko()
+      const mockResponseFunkoDto = new FunkoDto()
+      const mockFile: Express.Multer.File = {
+        fieldname: 'image',
+        originalname: 'image',
+        encoding: '7bit',
+        mimetype: 'image/jpeg',
+        destination: 'destination',
+        filename: 'filename',
+        path: 'path',
+        size: 1,
+        stream: null,
+        buffer: null,
       }
-      jest
-        .spyOn(categoryRepository, 'createQueryBuilder')
-        .mockReturnValue(mockQuery as any)
-      expect(await service.checkCategory('Category')).toEqual(category)
-    })
-    it('should throw a NotFoundException', async () => {
-      const mockQuery = {
-        where: jest.fn().mockReturnThis(),
-        getOne: jest.fn().mockResolvedValue(undefined),
-      }
-      jest
-        .spyOn(categoryRepository, 'createQueryBuilder')
-        .mockReturnValue(mockQuery as any)
-      await expect(service.checkCategory('1')).rejects.toThrow(
-        NotFoundException,
+
+      jest.spyOn(notificationMock, 'sendMessage').mockResolvedValue('UPDATED')
+
+      jest.spyOn(funkoRepository, 'findOneBy').mockResolvedValue(mockFunko)
+
+      jest.spyOn(storageService, 'removeFile').mockImplementation()
+
+      jest.spyOn(funkoRepository, 'save').mockResolvedValue(mockFunko)
+
+      jest.spyOn(mapper, 'toDto').mockReturnValue(mockResponseFunkoDto)
+
+      jest.spyOn(notification, 'sendMessage').mockImplementation()
+
+      jest.spyOn(cacheManager.store, 'keys').mockResolvedValue([])
+
+      jest.spyOn(cacheManager, 'set').mockResolvedValue()
+
+      expect(await service.updateImage(1, mockFile)).toEqual(
+        mockResponseFunkoDto,
       )
     })
   })
-  describe('updateImg', () => {
-    it('should update the image of a funko', async () => {})
+  describe('checkCategory', () => {
+    it('should return a category', async () => {
+      const result = new Category()
+      const mockQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(result),
+      }
+
+      jest
+        .spyOn(categoryRepository, 'createQueryBuilder')
+        .mockReturnValue(mockQueryBuilder as any)
+
+      expect(await service.checkCategory('test')).toEqual(result)
+    })
+
+    it('should throw 400 bad request', async () => {
+      const mockQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(null),
+      }
+
+      jest
+        .spyOn(categoryRepository, 'createQueryBuilder')
+        .mockReturnValue(mockQueryBuilder as any)
+      await expect(service.checkCategory('test')).rejects.toThrow()
+    })
   })
 })

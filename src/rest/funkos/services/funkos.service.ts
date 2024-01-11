@@ -67,7 +67,8 @@ export class FunkosService {
       throw new NotFoundException(`Funko con id: ${id} no encontrado`)
     } else {
       await this.cacheManager.set(`funko-${id}`, funko, 60)
-      return this.funkoMapper.toDto(funko)
+      const funkoDto = this.funkoMapper.toDto(funko)
+      return funkoDto
     }
   }
 
@@ -79,7 +80,7 @@ export class FunkosService {
     const funkoDto = this.funkoMapper.toDto(funkoCreated)
     this.notify('CREATE', funkoDto)
     await this.invalidateCacheKey('all_funkos')
-    return this.funkoMapper.toDto(funkoCreated)
+    return funkoDto
   }
 
   async update(id: number, updateFunkoDto: UpdateFunkoDto) {
@@ -107,7 +108,7 @@ export class FunkosService {
     this.notify('UPDATE', funkoDto)
     await this.invalidateCacheKey(`funko-${id}`)
     await this.invalidateCacheKey('all_funkos')
-    return this.funkoMapper.toDto(funkoUpdated)
+    return funkoDto
   }
 
   async remove(id: number) {
@@ -156,85 +157,51 @@ export class FunkosService {
     this.notify('DELETE', funkoDto)
     await this.invalidateCacheKey(`funko-${id}`)
     await this.invalidateCacheKey('all_funkos')
-    return this.funkoMapper.toDto(funkoDeleted)
+    return funkoDto
   }
 
-  async checkCategory(nameCategory: string) {
-    this.logger.log(`Buscando categoria con nombre: ${nameCategory}`)
-    const cache: Category = await this.cacheManager.get(
-      `category_${nameCategory}`,
-    )
-    if (cache) {
-      this.logger.log('Cache hit')
-      return cache
-    }
+  async checkCategory(name: string) {
+    this.logger.log(`Finding category with name ${name}`)
     const category = await this.categoryRepository
       .createQueryBuilder('category')
-      .where('category.name = :name and' + ' category.isActive = :isActive', {
-        name: nameCategory,
-        isActive: true,
+      .where('LOWER(category.name) = LOWER(:name)', {
+        name: name,
       })
+      .andWhere('category.isDeleted = false')
       .getOne()
-    if (!category) {
-      throw new NotFoundException(
-        `Categoria con nombre: ${nameCategory} no encontrada`,
-      )
+    if (category) {
+      return category
+    } else {
+      throw new BadRequestException(`Category ${name} not found`)
     }
-    await this.cacheManager.set(`category_${nameCategory}`, category, 60)
-    return category
   }
 
-  async updateImg(
-    id: number,
-    file: Express.Multer.File,
-    req: Request,
-    withUrl: boolean = true,
-  ) {
-    this.logger.log(`Updating image for funko with id: ${id}`)
-    const funko = await this.funkoRepository
-      .createQueryBuilder('funko')
-      .leftJoinAndSelect('funko.category', 'category')
-      .where('funko.id = :id and funko.isDeleted = :isDeleted', {
-        id,
-        isDeleted: false,
-      })
-      .getOne()
-    if (!funko) {
-      throw new NotFoundException(`Funko with id: ${id} not found`)
-    }
-    if (funko.image !== Funko.IMAGE_DEFAULT) {
-      this.logger.log(`Removing image for funko with id: ${id}`)
-      let imagePath = funko.image
-      if (withUrl) {
-        imagePath = this.storageService.getFileName(funko.image)
-      }
-      try {
-        this.storageService.removeFile(imagePath)
-      } catch (error) {
-        this.logger.error(error)
-      }
+  async updateImage(id: number, file: Express.Multer.File) {
+    this.logger.log(`Updating funko image with id ${id}`)
+    const funkoToUpdate = await this.funkoRepository.findOneBy({ id })
+    if (!funkoToUpdate) {
+      throw new NotFoundException(`Funko #${id} not found`)
     }
     if (!file) {
       throw new BadRequestException('File is required')
     }
-    let filePath: string
-    if (withUrl) {
-      filePath = `${req.protocol}://${req.get('host')}$/storage/${
-        file.filename
-      }`
-    } else {
-      filePath = file.filename
+    if (funkoToUpdate.image !== Funko.IMAGE_DEFAULT) {
+      this.logger.log(`Eliminando imagen antigua ${funkoToUpdate.image}`)
+      try {
+        this.storageService.removeFile(funkoToUpdate.image)
+      } catch (error) {
+        this.logger.error(error)
+      }
     }
-    funko.image = filePath
 
-    const funkoUpdated = await this.funkoRepository.save(funko)
-    const funkoDto = this.funkoMapper.toDto(funkoUpdated)
-    this.notify('UPDATE', funkoDto)
+    funkoToUpdate.image = file.filename
+    const funkoUpdated = await this.funkoRepository.save(funkoToUpdate)
+    const dto = this.funkoMapper.toDto(funkoUpdated)
+    this.notify('UPDATE', dto)
     await this.invalidateCacheKey(`funko-${id}`)
-    await this.invalidateCacheKey('all_funkos')
-    return this.funkoMapper.toDto(funkoUpdated)
+    await this.invalidateCacheKey('all-funkos')
+    return dto
   }
-
   async invalidateCacheKey(keyPattern: string): Promise<void> {
     const cacheKeys = await this.cacheManager.store.keys()
     const keysToDelete = cacheKeys.filter((key) => key.startsWith(keyPattern))

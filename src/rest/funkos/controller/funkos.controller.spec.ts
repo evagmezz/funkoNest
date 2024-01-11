@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing'
 import { FunkosController } from './funkos.controller'
 import { FunkosService } from '../services/funkos.service'
 import { FunkoDto } from '../dto/funko.dto'
-import { NotFoundException } from '@nestjs/common'
+import { BadRequestException, NotFoundException } from '@nestjs/common'
 import { CreateFunkoDto } from '../dto/create-funko.dto'
 import { UpdateFunkoDto } from '../dto/update-funko.dto'
 import { CacheModule } from '@nestjs/cache-manager'
@@ -17,6 +17,7 @@ describe('FunkosController', () => {
     create: jest.fn(),
     update: jest.fn(),
     isDeletedToTrue: jest.fn(),
+    updateImage: jest.fn(),
   }
 
   beforeEach(async () => {
@@ -104,6 +105,91 @@ describe('FunkosController', () => {
         .spyOn(service, 'isDeletedToTrue')
         .mockRejectedValue(new NotFoundException())
       await expect(controller.remove(id)).rejects.toThrow(NotFoundException)
+    })
+  })
+  describe('updateImage', () => {
+    it('should update a funko image', async () => {
+      const id = 1
+      const mockResult: FunkoDto = new FunkoDto()
+      const mockFile: Express.Multer.File = {
+        fieldname: 'image',
+        originalname: 'image',
+        encoding: '7bit',
+        mimetype: 'image/jpeg',
+        destination: 'destination',
+        filename: 'filename',
+        path: 'path',
+        size: 1,
+        stream: null,
+        buffer: null,
+      }
+      jest.spyOn(service, 'updateImage').mockResolvedValue(mockResult)
+      await controller.updateImage(id, mockFile)
+      expect(service.updateImage).toHaveBeenCalledWith(id, mockFile)
+      expect(mockResult).toBeInstanceOf(FunkoDto)
+    })
+    it('bad request file too large', async () => {
+      const id = 1
+      const mockFile: Express.Multer.File = {
+        fieldname: 'image',
+        originalname: 'image',
+        encoding: '7bit',
+        mimetype: 'image/jpeg',
+        destination: 'destination',
+        filename: 'filename',
+        path: 'path',
+        size: 10000000,
+        stream: null,
+        buffer: null,
+      }
+      jest
+        .spyOn(service, 'updateImage')
+        .mockRejectedValue(new BadRequestException())
+      await expect(controller.updateImage(id, mockFile)).rejects.toThrow(
+        BadRequestException,
+      )
+    })
+    it('bad request file not image', async () => {
+      const id = 1
+      const mockFile: Express.Multer.File = {
+        fieldname: 'image',
+        originalname: 'image',
+        encoding: '7bit',
+        mimetype: 'text/plain',
+        destination: 'destination',
+        filename: 'filename',
+        path: 'path',
+        size: 1,
+        stream: null,
+        buffer: null,
+      }
+      jest
+        .spyOn(service, 'updateImage')
+        .mockRejectedValue(new BadRequestException())
+      await expect(controller.updateImage(id, mockFile)).rejects.toThrow(
+        BadRequestException,
+      )
+    })
+    it('should throw an error if funko not found', async () => {
+      const id = 1
+      const mockFile: Express.Multer.File = {
+        fieldname: 'image',
+        originalname: 'image',
+        encoding: '7bit',
+        mimetype: 'image/jpeg',
+        destination: 'destination',
+        filename: 'filename',
+        path: 'path',
+        size: 1,
+        stream: null,
+        buffer: null,
+      }
+      jest
+        .spyOn(service, 'updateImage')
+        .mockRejectedValue(new NotFoundException())
+      await expect(controller.updateImage(id, mockFile)).rejects.toThrow(
+        NotFoundException,
+      )
     })
   })
 })

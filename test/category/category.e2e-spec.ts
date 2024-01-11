@@ -6,6 +6,7 @@ import { CategoryService } from '../../src/rest/category/services/category.servi
 import { CategoryController } from '../../src/rest/category/controllers/category.controller'
 import { Test, TestingModule } from '@nestjs/testing'
 import * as request from 'supertest'
+import { CacheModule } from '@nestjs/cache-manager'
 
 describe('categoryController (e2e)', () => {
   let app: INestApplication
@@ -33,6 +34,7 @@ describe('categoryController (e2e)', () => {
   }
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [CacheModule.register()],
       controllers: [CategoryController],
       providers: [
         CategoryService,

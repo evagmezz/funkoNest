@@ -98,9 +98,8 @@ export class FunkosController {
   updateImage(
     @Param('id', ParseIntPipe) id: number,
     @UploadedFile() file: Express.Multer.File,
-    @Req() req: Request,
   ) {
-    return this.funkosService.updateImg(id, file, req, false)
+    return this.funkosService.updateImage(id, file)
   }
 
   @Delete(':id')
