@@ -6,6 +6,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common'
 import { CreateFunkoDto } from '../dto/create-funko.dto'
 import { UpdateFunkoDto } from '../dto/update-funko.dto'
 import { CacheModule } from '@nestjs/cache-manager'
+import { Paginated } from 'nestjs-paginate'
 
 describe('FunkosController', () => {
   let controller: FunkosController
@@ -37,10 +38,28 @@ describe('FunkosController', () => {
   })
   describe('findAll', () => {
     it('should return an array of funkos', async () => {
-      const result: Array<FunkoDto> = []
-      jest.spyOn(service, 'findAll').mockResolvedValue(result)
-      const funkos = await controller.findAll()
-      expect(funkos).toBeInstanceOf(Array)
+      const paginateOptions = {
+        page: 1,
+        limit: 3,
+        path: 'http://localhost:3000/api/funkos',
+      }
+      const page = {
+        data: [],
+        meta: {
+          itemsPerPage: 3,
+          totalItems: 19,
+          currentPage: 1,
+          totalPages: 7,
+        },
+        links: {
+          current:
+            'http://localhost:3000/api/funkos?page=1&limit=3&sortBy=id:ASC',
+        },
+      } as Paginated<FunkoDto>
+      jest.spyOn(service, 'findAll').mockResolvedValue(page)
+      const result: any = await controller.findAll(paginateOptions)
+
+      expect(result.meta.totalPages).toEqual(19)
       expect(service.findAll).toHaveBeenCalled()
     })
   })

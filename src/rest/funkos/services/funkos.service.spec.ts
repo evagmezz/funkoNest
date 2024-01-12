@@ -14,6 +14,8 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { NotificationsModule } from '../../../websockets/notifications/notifications.module'
 import { StorageService } from '../../storage/services/storage.service'
 import { NotificationsGateway } from '../../../websockets/notifications/notifications.gateway'
+import { Paginated } from 'nestjs-paginate'
+import { hash } from 'typeorm/util/StringUtils'
 
 describe('FunkosService', () => {
   let service: FunkosService
@@ -75,23 +77,31 @@ describe('FunkosService', () => {
   })
   describe('findAll', () => {
     it('should return an array of funkos', async () => {
-      const funkosDto: FunkoDto[] = []
-      jest.spyOn(cacheManagerMock.store, 'keys').mockResolvedValue([])
-
-      const mockQuery = {
-        leftJoinAndSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        orderBy: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue(funkosDto),
+      const paginateOptions = {
+        page: 1,
+        limit: 3,
+        path: 'http://localhost:3000/api/funkos',
       }
-      jest
-        .spyOn(funkoRepository, 'createQueryBuilder')
-        .mockReturnValue(mockQuery as any)
+      const page = {
+        data: [],
+        meta: {
+          itemsPerPage: 3,
+          totalItems: 19,
+          totalPages: 7,
+          currentPage: 1,
+        },
+        links: {
+          current:
+            'http://localhost:3000/api/funkos?page=1&limit=3&sortBy=id:ASC',
+        },
+      } as Paginated<FunkoDto>
+      jest.spyOn(cacheManager, 'get').mockResolvedValue(page)
+      const result: any = await service.findAll(paginateOptions)
 
-      jest.spyOn(mapper, 'toDto').mockReturnValue(funkosDto[0])
-      expect(await service.findAll()).toEqual(funkosDto)
-      expect(cacheManager.get).toHaveBeenCalled()
-      expect(cacheManager.set).toHaveBeenCalled()
+      expect(cacheManager.get).toHaveBeenCalledWith(
+        `all_funkos_page_${hash(JSON.stringify(paginateOptions))}`,
+      )
+      expect(result).toEqual(page)
     })
   })
   describe('findOne', () => {
