@@ -43,7 +43,7 @@ describe('FunkosController', () => {
         limit: 3,
         path: 'http://localhost:3000/api/funkos',
       }
-      const page = {
+      const page: any = {
         data: [],
         meta: {
           itemsPerPage: 3,
@@ -59,7 +59,7 @@ describe('FunkosController', () => {
       jest.spyOn(service, 'findAll').mockResolvedValue(page)
       const result: any = await controller.findAll(paginateOptions)
 
-      expect(result.meta.totalPages).toEqual(19)
+      expect(result.meta.totalPages).toEqual(7)
       expect(service.findAll).toHaveBeenCalled()
     })
   })

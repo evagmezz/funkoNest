@@ -82,7 +82,7 @@ describe('FunkosService', () => {
         limit: 3,
         path: 'http://localhost:3000/api/funkos',
       }
-      const page = {
+      const page: any = {
         data: [],
         meta: {
           itemsPerPage: 3,
@@ -220,7 +220,7 @@ describe('FunkosService', () => {
       const mockQuery = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
-        getOne: jest.fn().mockResolvedValue(undefined),
+        getOne: jest.fn().mockResolvedValue(null),
       }
       jest
         .spyOn(funkoRepository, 'createQueryBuilder')
