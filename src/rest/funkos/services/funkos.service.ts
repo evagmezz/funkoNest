@@ -13,7 +13,6 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { Category } from '../../category/entities/category.entity'
 import { StorageService } from '../../storage/services/storage.service'
-import { Request } from 'express'
 import { NotificationsGateway } from '../../../websockets/notifications/notifications.gateway'
 import { FunkoDto } from '../dto/funko.dto'
 import { Cache } from 'cache-manager'
@@ -167,7 +166,7 @@ export class FunkosService {
       .where('LOWER(category.name) = LOWER(:name)', {
         name: name,
       })
-      .andWhere('category.isDeleted = false')
+      .andWhere('category.isActive = true')
       .getOne()
     if (category) {
       return category

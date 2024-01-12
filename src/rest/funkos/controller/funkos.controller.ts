@@ -22,7 +22,6 @@ import { diskStorage } from 'multer'
 import { FunkoExistsGuard } from '../guards/funko-exists-guard'
 import { extname, parse } from 'path'
 import { v4 as uuidv4 } from 'uuid'
-import { Request } from 'express'
 import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager'
 
 @Controller('api/funkos')

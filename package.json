@@ -33,6 +33,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "install": "^0.13.0",
+    "nestjs-paginate": "^8.6.0",
     "npm": "^10.2.5",
     "pg": "^8.11.3",
     "reflect-metadata": "^0.1.13",
