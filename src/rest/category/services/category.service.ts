@@ -15,6 +15,13 @@ import { CategoryDto } from '../dto/category.dto'
 import { NotificationsGateway } from '../../../websockets/notifications/notifications.gateway'
 import { Cache } from 'cache-manager'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import { hash } from 'typeorm/util/StringUtils'
+import {
+  FilterOperator,
+  FilterSuffix,
+  paginate,
+  PaginateQuery,
+} from 'nestjs-paginate'
 
 @Injectable()
 export class CategoryService {
@@ -28,21 +35,31 @@ export class CategoryService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
-  async findAll() {
+  async findAll(query: PaginateQuery) {
     this.logger.log('Buscando todas las categorias...')
-    const cache: CategoryDto[] = await this.cacheManager.get('categories')
+    const cache: CategoryDto[] = await this.cacheManager.get(
+      `all_categories_page_${hash(JSON.stringify(query))}`,
+    )
     if (cache) {
       this.logger.log('Cache hit')
       return cache
     }
+    const page = await paginate(query, this.categoryRepository, {
+      sortableColumns: ['name'],
+      defaultSortBy: [['name', 'ASC']],
+      searchableColumns: ['name'],
+      filterableColumns: {
+        name: [FilterOperator.EQ, FilterSuffix.NOT],
+        isActive: [FilterOperator.EQ, FilterSuffix.NOT],
+      },
+    })
     await this.cacheManager.set(
-      'all_categories',
-      await this.categoryRepository.find(),
+      `all_categories_page_${hash(JSON.stringify(query))}`,
+      page,
       60,
     )
-    return await this.categoryRepository.find()
+    return page
   }
-
   async findOne(id: string) {
     this.logger.log(`Find one categoria by id:${id}`)
     const cache: CategoryDto = await this.cacheManager.get(`category-${id}`)

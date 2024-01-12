@@ -23,6 +23,7 @@ import { FunkoExistsGuard } from '../guards/funko-exists-guard'
 import { extname, parse } from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager'
+import { Paginate, PaginateQuery } from 'nestjs-paginate'
 
 @Controller('api/funkos')
 @UseInterceptors(CacheInterceptor)
@@ -32,8 +33,8 @@ export class FunkosController {
   @Get()
   @CacheKey('all_funkos')
   @CacheTTL(60)
-  findAll() {
-    return this.funkosService.findAll()
+  findAll(@Paginate() query: PaginateQuery) {
+    return this.funkosService.findAll(query)
   }
 
   @Get(':id')

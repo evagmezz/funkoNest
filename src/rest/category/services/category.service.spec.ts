@@ -9,6 +9,8 @@ import { BadRequestException, NotFoundException } from '@nestjs/common'
 import { NotificationsGateway } from '../../../websockets/notifications/notifications.gateway'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { CategoryDto } from '../dto/category.dto'
+import { Paginated } from 'nestjs-paginate'
+import { hash } from 'typeorm/util/StringUtils'
 
 describe('CategoryService', () => {
   let service: CategoryService
@@ -58,20 +60,43 @@ describe('CategoryService', () => {
   })
 
   describe('findAll', () => {
-    it('should return an array of categories', async () => {
-      const categories = [new Category()]
-      jest.spyOn(repository, 'find').mockResolvedValue(categories)
-      jest.spyOn(cacheMock.store, 'keys').mockResolvedValue([])
-      expect(await service.findAll()).toEqual(categories)
+    it('should return a page of categories', async () => {
+      const paginateOptions = {
+        page: 1,
+        limit: 10,
+        path: 'http://localhost:3000/api/category',
+      }
+
+      const page = {
+        data: [],
+        meta: {
+          itemsPerPage: 1,
+          totalItems: 4,
+          currentPage: 1,
+          totalPages: 4,
+        },
+        links: {
+          current:
+            'http://localhost:3000/api/category?page=1&limit=1&sortBy=name:ASC',
+        },
+      } as Paginated<Category>
+      jest.spyOn(cacheMock, 'get').mockResolvedValue(page)
+      const result: any = await service.findAll(paginateOptions)
+
+      expect(cacheMock.get).toHaveBeenCalledWith(
+        `all_categories_page_${hash(JSON.stringify(paginateOptions))}`,
+      )
+      expect(result).toEqual(page)
     })
   })
   describe('findOne', () => {
     it('should create a category', async () => {
       const category = new Category()
+      jest.spyOn(cacheMock, 'get').mockResolvedValue(Promise.resolve(null))
       jest.spyOn(repository, 'findOneBy').mockResolvedValue(category)
       expect(
         await service.findOne('d69cf3db-b77d-4181-b3cd-5ca8107fb6a7'),
-      ).toBe(category)
+      ).toEqual(category)
     })
     jest.spyOn(cacheMock.store, 'keys').mockResolvedValue([])
     it('should throw a NotFoundException', async () => {

@@ -4,6 +4,7 @@ import { CategoryService } from '../services/category.service'
 import { Category } from '../entities/category.entity'
 import { NotFoundException } from '@nestjs/common'
 import { CacheModule } from '@nestjs/cache-manager'
+import { Paginated } from 'nestjs-paginate'
 
 describe('CategoryController', () => {
   let controller: CategoryController
@@ -32,10 +33,29 @@ describe('CategoryController', () => {
   })
   describe('findAll', () => {
     it('should return an array of categories', async () => {
-      const result: Array<Category> = []
-      jest.spyOn(service, 'findAll').mockResolvedValue(result)
-      await controller.findAll()
-      expect(result).toBeInstanceOf(Array)
+      const paginateOptions = {
+        page: 1,
+        limit: 10,
+        path: 'http://localhost:3000/api/category',
+      }
+
+      const page = {
+        data: [],
+        meta: {
+          itemsPerPage: 1,
+          totalItems: 4,
+          currentPage: 1,
+          totalPages: 4,
+        },
+        links: {
+          current:
+            'http://localhost:3000/api/category?page=1&limit=1&sortBy=name:ASC',
+        },
+      } as Paginated<Category>
+      jest.spyOn(service, 'findAll').mockResolvedValue(page)
+      const result: any = await controller.findAll(paginateOptions)
+
+      expect(result.meta.totalPages).toEqual(4)
       expect(service.findAll).toHaveBeenCalled()
     })
   })

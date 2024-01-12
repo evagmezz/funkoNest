@@ -17,6 +17,13 @@ import { NotificationsGateway } from '../../../websockets/notifications/notifica
 import { FunkoDto } from '../dto/funko.dto'
 import { Cache } from 'cache-manager'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import {
+  FilterOperator,
+  FilterSuffix,
+  paginate,
+  PaginateQuery,
+} from 'nestjs-paginate'
+import { hash } from 'typeorm/util/StringUtils'
 
 @Injectable()
 export class FunkosService {
@@ -33,21 +40,43 @@ export class FunkosService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
-  async findAll() {
+  async findAll(query: PaginateQuery) {
     this.logger.log('Buscando todos los funkos...')
-    const cache: FunkoDto[] = await this.cacheManager.get('funkos')
+    const cache: FunkoDto[] = await this.cacheManager.get(
+      `all_funkos_page_${hash(JSON.stringify(query))}`,
+    )
     if (cache) {
       this.logger.log('Funkos encontrados en cache')
       return cache
     }
-    const funkos = await this.funkoRepository
+    const funkos = this.funkoRepository
       .createQueryBuilder('funko')
       .leftJoinAndSelect('funko.category', 'category')
-      .where('funko.isDeleted = :isDeleted', { isDeleted: false })
-      .orderBy('funko.id', 'ASC')
-      .getMany()
-    await this.cacheManager.set('funkos', funkos, 60)
-    return funkos.map((funko) => this.funkoMapper.toDto(funko))
+
+    const page = await paginate(query, funkos, {
+      sortableColumns: ['name', 'category.name', 'price'],
+      defaultSortBy: [['id', 'ASC']],
+      searchableColumns: ['name', 'category.name', 'price', 'quantity'],
+      filterableColumns: {
+        name: [FilterOperator.EQ, FilterSuffix.NOT],
+        'category.name': [FilterOperator.EQ, FilterSuffix.NOT],
+        price: [FilterOperator.EQ, FilterSuffix.NOT],
+        quantity: [FilterOperator.EQ, FilterSuffix.NOT],
+        isActive: [FilterOperator.EQ, FilterSuffix.NOT],
+      },
+    })
+    const dto = {
+      data: (page.data ?? []).map((funko) => this.funkoMapper.toDto(funko)),
+      meta: page.meta,
+      links: page.links,
+    }
+
+    await this.cacheManager.set(
+      `all_funkos_page_${hash(JSON.stringify(query))}`,
+      dto,
+      60,
+    )
+    return dto
   }
 
   async findOne(id: number) {
