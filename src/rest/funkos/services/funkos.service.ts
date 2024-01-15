@@ -54,15 +54,13 @@ export class FunkosService {
       .leftJoinAndSelect('funko.category', 'category')
 
     const page = await paginate(query, funkos, {
-      sortableColumns: ['name', 'category.name', 'price'],
+      sortableColumns: ['name', 'price', 'id'],
       defaultSortBy: [['id', 'ASC']],
-      searchableColumns: ['name', 'category.name', 'price', 'quantity'],
+      searchableColumns: ['name', 'price', 'quantity', 'id'],
       filterableColumns: {
         name: [FilterOperator.EQ, FilterSuffix.NOT],
-        'category.name': [FilterOperator.EQ, FilterSuffix.NOT],
-        price: [FilterOperator.EQ, FilterSuffix.NOT],
-        quantity: [FilterOperator.EQ, FilterSuffix.NOT],
-        isActive: [FilterOperator.EQ, FilterSuffix.NOT],
+        price: [FilterOperator.EQ, FilterOperator.GT, FilterOperator.LT],
+        quantity: [FilterOperator.EQ, FilterOperator.GT, FilterOperator.LT],
       },
     })
     const dto = {
