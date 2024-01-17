@@ -18,10 +18,11 @@ import { IdValidatePipe } from '../pipes/id-validate.pipe'
 import { OrderByValidatePipe } from '../pipes/orderby-validate.pipe'
 import { OrderValidatePipe } from '../pipes/order-validate.pipe'
 
-@Controller('api/orders')
+@Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
+  @Get()
   async findAll(
     @Query('page', new DefaultValuePipe(1)) page: number = 1,
     @Query('limit', new DefaultValuePipe(20)) limit: number = 20,
