@@ -60,7 +60,6 @@ export class FunkosService {
       filterableColumns: {
         name: [FilterOperator.EQ, FilterSuffix.NOT],
         price: [FilterOperator.EQ, FilterOperator.GT, FilterOperator.LT],
-        quantity: [FilterOperator.EQ, FilterOperator.GT, FilterOperator.LT],
       },
     })
     const dto = {

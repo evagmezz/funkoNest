@@ -49,8 +49,7 @@ export class CategoryService {
       defaultSortBy: [['name', 'ASC']],
       searchableColumns: ['name'],
       filterableColumns: {
-        name: [FilterOperator.EQ, FilterSuffix.NOT],
-        isActive: [FilterOperator.EQ, FilterSuffix.NOT],
+        name: [FilterOperator.EQ, FilterSuffix.NOT, FilterOperator.ILIKE],
       },
     })
     await this.cacheManager.set(

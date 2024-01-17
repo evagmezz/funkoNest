@@ -37,7 +37,6 @@ export class Funko {
   @IsInt({ message: 'La cantidad debe ser un numero entero' })
   quantity: number
   @IsString({ message: 'La imagen debe ser una cadena de texto' })
-  @IsOptional()
   @Column({ type: 'text', default: Funko.IMAGE_DEFAULT })
   image: string = Funko.IMAGE_DEFAULT
   @IsDate()
@@ -55,9 +54,8 @@ export class Funko {
   })
   updatedAt: Date
   @IsBoolean()
-  @IsOptional()
   @Column({ type: 'boolean', default: false, name: 'is_deleted' })
-  isDeleted?: boolean
+  isDeleted: boolean
   @ManyToOne(() => Category, (category) => category.funkos)
   @JoinColumn({ name: 'category_id' })
   category: Category
