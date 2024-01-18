@@ -59,9 +59,7 @@ describe('categoryController (e2e)', () => {
         total: 1,
         limit,
       }
-
       mockCategoryService.findAll.mockResolvedValue(paginatedResult)
-
       const { body } = await request(app.getHttpServer())
         .get(`${myEndpoint}?limit=${limit}`)
         .expect(200)
@@ -71,7 +69,6 @@ describe('categoryController (e2e)', () => {
         category.updatedAt = new Date(category.updatedAt)
         return category
       })
-
       expect(bodyDate).toEqual(paginatedResult.items)
       expect(body.total).toEqual(paginatedResult.total)
       expect(body.limit).toEqual(paginatedResult.limit)

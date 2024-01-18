@@ -24,9 +24,12 @@ import { extname, parse } from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager'
 import { Paginate, PaginateQuery } from 'nestjs-paginate'
+import { JwtAuthGuard } from '../../auth/guards/roles-auth.guard'
+import { Roles, RolesAuthGuard } from '../../auth/guards/jwt-auth.guard'
 
 @Controller('api/funkos')
 @UseInterceptors(CacheInterceptor)
+@UseGuards(JwtAuthGuard, RolesAuthGuard)
 export class FunkosController {
   constructor(private readonly funkosService: FunkosService) {}
 
@@ -46,12 +49,14 @@ export class FunkosController {
 
   @Post()
   @HttpCode(201)
+  @Roles('ADMIN')
   create(@Body() createFunkoDto: CreateFunkoDto) {
     return this.funkosService.create(createFunkoDto)
   }
 
   @Put(':id')
   @HttpCode(201)
+  @Roles('ADMIN')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateFunkoDto: UpdateFunkoDto,
@@ -62,6 +67,7 @@ export class FunkosController {
   @Patch(':id/image')
   @HttpCode(201)
   @UseGuards(FunkoExistsGuard)
+  @Roles('ADMIN')
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
@@ -103,6 +109,7 @@ export class FunkosController {
 
   @Delete(':id')
   @HttpCode(204)
+  @Roles('ADMIN')
   remove(@Param('id', ParseIntPipe) id: number) {
     //return this.funkosService.remove(id)
     return this.funkosService.isDeletedToTrue(id)
