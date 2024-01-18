@@ -35,7 +35,11 @@ describe('FunkosController (e2e)', () => {
   }
 
   const mockFunkoService = {
-    findAll: jest.fn(),
+    findAll: jest.fn((page, size) => {
+      const start = (page - 1) * size
+      const end = page * size
+      return [funkoResponse].slice(start, end)
+    }),
     findOne: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
@@ -61,12 +65,15 @@ describe('FunkosController (e2e)', () => {
     await app.close()
   })
   describe('GET /api/funkos', () => {
-    it('should return an array of funkos', async () => {
+    it('should return a paginated array of funkos', async () => {
+      const page = 1
+      const size = 1
       mockFunkoService.findAll.mockReturnValue([funkoResponse])
       const { body } = await request(app.getHttpServer())
         .get(myEndpoint)
+        .query({ page, size })
         .expect(200)
-      expect(body).toEqual([funkoResponse])
+      expect(body).toHaveLength(size)
       expect(mockFunkoService.findAll).toHaveBeenCalledTimes(1)
     })
   })

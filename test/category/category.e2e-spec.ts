@@ -52,17 +52,29 @@ describe('categoryController (e2e)', () => {
     await app.close()
   })
   describe('GET /category', () => {
-    it('should return an array of categories', async () => {
-      mockCategoryService.findAll.mockResolvedValue([categoryDto])
+    it('should return a paginated array of categories', async () => {
+      const limit = 10
+      const paginatedResult = {
+        items: [categoryDto],
+        total: 1,
+        limit,
+      }
+
+      mockCategoryService.findAll.mockResolvedValue(paginatedResult)
+
       const { body } = await request(app.getHttpServer())
-        .get(myEndpoint)
+        .get(`${myEndpoint}?limit=${limit}`)
         .expect(200)
-      const bodyDate = body.map((category) => {
+
+      const bodyDate = body.items.map((category) => {
         category.createdAt = new Date(category.createdAt)
         category.updatedAt = new Date(category.updatedAt)
         return category
       })
-      expect(bodyDate).toEqual([categoryDto])
+
+      expect(bodyDate).toEqual(paginatedResult.items)
+      expect(body.total).toEqual(paginatedResult.total)
+      expect(body.limit).toEqual(paginatedResult.limit)
       expect(mockCategoryService.findAll).toHaveBeenCalledTimes(1)
     })
   })
