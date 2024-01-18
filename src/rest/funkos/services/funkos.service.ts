@@ -227,6 +227,7 @@ export class FunkosService {
     await this.invalidateCacheKey('all-funkos')
     return dto
   }
+
   async invalidateCacheKey(keyPattern: string): Promise<void> {
     const cacheKeys = await this.cacheManager.store.keys()
     const keysToDelete = cacheKeys.filter((key) => key.startsWith(keyPattern))

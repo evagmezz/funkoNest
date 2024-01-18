@@ -1,4 +1,3 @@
-import { IsNotEmpty, IsPositive } from 'class-validator'
 import { Prop } from '@nestjs/mongoose'
 
 export class Address {

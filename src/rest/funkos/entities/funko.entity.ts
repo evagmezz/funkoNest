@@ -3,7 +3,6 @@ import {
   IsDate,
   IsInt,
   IsNotEmpty,
-  IsOptional,
   IsPositive,
   IsString,
 } from 'class-validator'

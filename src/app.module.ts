@@ -7,6 +7,8 @@ import { CacheModule } from '@nestjs/cache-manager'
 import { DatabaseModule } from './config/database/database.module'
 import { OrdersModule } from './rest/orders/orders.module'
 import { NotificationsModule } from './websockets/notifications/notifications.module'
+import { UsersModule } from './rest/users/users.module';
+import { AuthModule } from './rest/auth/auth.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { NotificationsModule } from './websockets/notifications/notifications.mo
     StorageModule,
     NotificationsModule,
     OrdersModule,
+    UsersModule,
+    AuthModule,
   ],
 })
 export class AppModule {}

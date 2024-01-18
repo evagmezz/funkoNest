@@ -59,6 +59,7 @@ export class CategoryService {
     )
     return page
   }
+
   async findOne(id: string) {
     this.logger.log(`Find one categoria by id:${id}`)
     const cache: CategoryDto = await this.cacheManager.get(`category-${id}`)

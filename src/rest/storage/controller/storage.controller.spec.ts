@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { StorageController } from './storage.controller'
 import { StorageService } from '../services/storage.service'
-import { BadRequestException } from '@nestjs/common'
 
 describe('StorageController', () => {
   let controller: StorageController

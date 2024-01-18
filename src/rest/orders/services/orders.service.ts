@@ -13,6 +13,7 @@ import { Funko } from '../../funkos/entities/funko.entity'
 import { OrdersMapper } from '../mapper/orders.mapper'
 import { CreateOrderDto } from '../dto/create-order.dto'
 import { UpdateOrderDto } from '../dto/update-order.dto'
+import { User } from '../../users/entities/user.entity'
 
 export const PedidosOrderByValues: string[] = ['_id', 'userId']
 export const PedidosOrderValues: string[] = ['asc', 'desc']
@@ -27,6 +28,8 @@ export class OrdersService {
     @InjectRepository(Funko)
     private readonly funkoRepository: Repository<Funko>,
     private readonly ordersMapper: OrdersMapper,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
 
   async findAll(page: number, limit: number, orderBy: string, order: string) {
@@ -180,5 +183,11 @@ export class OrdersService {
       }
     }
     return order
+  }
+
+  async userExists(userId: number): Promise<boolean> {
+    this.logger.log(`Checking if user with id ${userId} exists`)
+    const user = await this.userRepository.findOneBy({ id: userId })
+    return !!user
   }
 }
