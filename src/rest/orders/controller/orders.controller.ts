@@ -17,8 +17,10 @@ import { UpdateOrderDto } from '../dto/update-order.dto'
 import { IdValidatePipe } from '../pipes/id-validate.pipe'
 import { OrderByValidatePipe } from '../pipes/orderby-validate.pipe'
 import { OrderValidatePipe } from '../pipes/order-validate.pipe'
+import { ApiExcludeController } from '@nestjs/swagger'
 
-@Controller('orders')
+@Controller('api/orders')
+@ApiExcludeController()
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 

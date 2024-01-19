@@ -18,7 +18,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { extname } from 'path'
 import { StorageService } from '../services/storage.service'
 
-@Controller('storage')
+@Controller('api/storage')
 export class StorageController {
   private readonly logger = new Logger(StorageController.name)
 

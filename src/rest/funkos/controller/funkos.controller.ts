@@ -23,19 +23,69 @@ import { FunkoExistsGuard } from '../guards/funko-exists-guard'
 import { extname, parse } from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager'
-import { Paginate, PaginateQuery } from 'nestjs-paginate'
+import { Paginate, Paginated, PaginateQuery } from 'nestjs-paginate'
 import { JwtAuthGuard } from '../../auth/guards/roles-auth.guard'
 import { Roles, RolesAuthGuard } from '../../auth/guards/jwt-auth.guard'
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiNotFoundResponse,
+  ApiParam,
+  ApiProperty,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger'
+import { FunkoDto } from '../dto/funko.dto'
 
 @Controller('api/funkos')
 @UseInterceptors(CacheInterceptor)
 @UseGuards(JwtAuthGuard, RolesAuthGuard)
+@ApiTags('Funkos')
 export class FunkosController {
   constructor(private readonly funkosService: FunkosService) {}
 
   @Get()
   @CacheKey('all_funkos')
   @CacheTTL(60)
+  @ApiResponse({
+    status: 200,
+    description:
+      'Returned all funkos paginated by limit, page, sortBy, filter and search',
+    type: Paginated<Promise<FunkoDto[]>>,
+  })
+  @ApiQuery({
+    description: 'Filter by limit',
+    name: 'limit',
+    required: false,
+    type: Number,
+  })
+  @ApiQuery({
+    description: 'Filter by page',
+    name: 'page',
+    required: false,
+    type: Number,
+  })
+  @ApiQuery({
+    description: 'Filter by sortBy, ASC or DESC',
+    name: 'sortBy',
+    required: false,
+    type: String,
+  })
+  @ApiQuery({
+    description: 'Filter by filter: name, category, collection, number',
+    name: 'filter',
+    required: false,
+    type: String,
+  })
+  @ApiQuery({
+    description: 'Filter by search: name, category, collection, number',
+    name: 'search',
+    required: false,
+    type: String,
+  })
   findAll(@Paginate() query: PaginateQuery) {
     return this.funkosService.findAll(query)
   }
@@ -43,20 +93,73 @@ export class FunkosController {
   @Get(':id')
   @CacheKey('one_funko')
   @CacheTTL(60)
+  @ApiResponse({
+    status: 200,
+    description: 'Returned one funko',
+    type: FunkoDto,
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Funko id',
+    type: Number,
+  })
+  @ApiNotFoundResponse({
+    description: 'Funko not found',
+  })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.funkosService.findOne(id)
   }
 
   @Post()
   @HttpCode(201)
+  @ApiBearerAuth()
   @Roles('ADMIN')
+  @ApiResponse({
+    status: 201,
+    description: 'Funko created',
+    type: FunkoDto,
+  })
+  @ApiBody({
+    description: 'Funko data',
+    type: CreateFunkoDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Category does not exist',
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid data',
+  })
   create(@Body() createFunkoDto: CreateFunkoDto) {
     return this.funkosService.create(createFunkoDto)
   }
 
   @Put(':id')
   @HttpCode(201)
+  @ApiBearerAuth()
   @Roles('ADMIN')
+  @ApiResponse({
+    status: 201,
+    description: 'Funko updated',
+    type: FunkoDto,
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Funko id',
+    type: Number,
+  })
+  @ApiBody({
+    description: 'Funko data',
+    type: UpdateFunkoDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Category does not exist',
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid data',
+  })
+  @ApiNotFoundResponse({
+    description: 'Funko id not found',
+  })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateFunkoDto: UpdateFunkoDto,
@@ -68,6 +171,38 @@ export class FunkosController {
   @HttpCode(201)
   @UseGuards(FunkoExistsGuard)
   @Roles('ADMIN')
+  @ApiBearerAuth()
+  @ApiResponse({
+    status: 201,
+    description: 'Funko image updated',
+    type: FunkoDto,
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Funko id',
+    type: Number,
+  })
+  @ApiProperty({
+    name: 'file',
+    description: 'Image file',
+    type: 'string',
+    format: 'binary',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'File image',
+    type: FileInterceptor('file'),
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid id',
+  })
+  @ApiNotFoundResponse({
+    description: 'Funko id not found',
+  })
+  @ApiBadRequestResponse({
+    description:
+      'File type not allowed. Allowed extensions are jpg, png and gif',
+  })
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
@@ -110,6 +245,22 @@ export class FunkosController {
   @Delete(':id')
   @HttpCode(204)
   @Roles('ADMIN')
+  @ApiBearerAuth()
+  @ApiResponse({
+    status: 204,
+    description: 'Funko deleted',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Funko id',
+    type: Number,
+  })
+  @ApiNotFoundResponse({
+    description: 'Funko id not found',
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid id',
+  })
   remove(@Param('id', ParseIntPipe) id: number) {
     //return this.funkosService.remove(id)
     return this.funkosService.isDeletedToTrue(id)

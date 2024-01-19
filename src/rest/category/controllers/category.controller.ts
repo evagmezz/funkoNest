@@ -18,9 +18,18 @@ import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager'
 import { Paginate, PaginateQuery } from 'nestjs-paginate'
 import { JwtAuthGuard } from '../../auth/guards/roles-auth.guard'
 import { Roles, RolesAuthGuard } from '../../auth/guards/jwt-auth.guard'
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiExcludeEndpoint,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger'
 
 @Controller('api/category')
 @UseInterceptors(CacheInterceptor)
+@ApiTags('Category')
 @UseGuards(JwtAuthGuard, RolesAuthGuard)
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
@@ -29,6 +38,7 @@ export class CategoryController {
   @CacheKey('all_categories')
   @CacheTTL(60)
   @Roles('USER')
+  @ApiExcludeEndpoint()
   async findAll(@Paginate() query: PaginateQuery) {
     return await this.categoryService.findAll(query)
   }
@@ -37,6 +47,7 @@ export class CategoryController {
   @CacheKey('one_category')
   @CacheTTL(60)
   @Roles('USER')
+  @ApiExcludeEndpoint()
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
     return await this.categoryService.findOne(id)
   }
@@ -44,12 +55,24 @@ export class CategoryController {
   @Post()
   @HttpCode(201)
   @Roles('ADMIN')
+  @ApiBearerAuth()
+  @ApiResponse({
+    status: 201,
+    description: 'Category created',
+  })
+  @ApiBody({
+    type: CreateCategoryDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Category already exists',
+  })
   async create(@Body() createCategoryDto: CreateCategoryDto) {
     return await this.categoryService.create(createCategoryDto)
   }
 
   @Put(':id')
   @Roles('ADMIN')
+  @ApiExcludeEndpoint()
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateCategoryDto: UpdateCategoryDto,
@@ -60,6 +83,7 @@ export class CategoryController {
   @Delete(':id')
   @HttpCode(204)
   @Roles('ADMIN')
+  @ApiExcludeEndpoint()
   async remove(@Param('id', ParseUUIDPipe) id: string) {
     //return await this.categoryService.remove(id)
     return await this.categoryService.changeIsActive(id)

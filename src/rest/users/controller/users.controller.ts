@@ -21,9 +21,11 @@ import { CreateOrderDto } from '../../orders/dto/create-order.dto'
 import { UpdateOrderDto } from '../../orders/dto/update-order.dto'
 import { JwtAuthGuard } from '../../auth/guards/roles-auth.guard'
 import { Roles, RolesAuthGuard } from '../../auth/guards/jwt-auth.guard'
+import { ApiExcludeController } from '@nestjs/swagger'
 
 @UseInterceptors(CacheInterceptor)
 @UseGuards(JwtAuthGuard, RolesAuthGuard)
+@ApiExcludeController()
 @Controller('api/users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}

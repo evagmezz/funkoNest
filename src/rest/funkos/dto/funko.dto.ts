@@ -1,31 +1,33 @@
-import {
-  IsBoolean,
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsPositive,
-  IsString,
-} from 'class-validator'
-import { Transform } from 'class-transformer'
+import { ApiProperty } from '@nestjs/swagger'
 
 export class FunkoDto {
+  @ApiProperty({ example: 1, description: 'Funko id' })
   id: number
-  @IsNotEmpty({ message: 'El nombre no puede estar vacio' })
-  @IsString({ message: 'El nombre debe ser una cadena de texto' })
-  @Transform(({ value }) => value.trim())
+
+  @ApiProperty({ example: 'Spiderman', description: 'Funko name' })
   name: string
-  @IsPositive({ message: 'El precio debe ser un numero positivo' })
-  @IsNotEmpty({ message: 'El precio no puede estar vacio' })
+
+  @ApiProperty({ example: 100, description: 'Funko price' })
   price: number
-  @IsNotEmpty({ message: 'La cantidad no puede estar vacia' })
-  @IsPositive({ message: 'La cantidad debe ser un numero positivo' })
-  @IsInt({ message: 'La cantidad debe ser un numero entero' })
+
+  @ApiProperty({ example: 10, description: 'Funko quantity' })
   quantity: number
-  @IsString({ message: 'La imagen debe ser una cadena de texto' })
-  @IsOptional()
-  image?: string
-  @IsOptional()
-  @IsBoolean()
-  isDeleted?: boolean
+
+  @ApiProperty({
+    example: 'https://example.com/image.jpg',
+    description: 'Funko image',
+  })
+  image: string
+
+  @ApiProperty({
+    example: false,
+    description: 'Funko is deleted status',
+  })
+  isDeleted: boolean
+
+  @ApiProperty({
+    example: 'Marvel',
+    description: 'Funko category',
+  })
   category: string
 }
