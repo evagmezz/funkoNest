@@ -7,6 +7,8 @@ import { CategoryController } from '../../src/rest/category/controllers/category
 import { Test, TestingModule } from '@nestjs/testing'
 import * as request from 'supertest'
 import { CacheModule } from '@nestjs/cache-manager'
+import { JwtAuthGuard } from '../../src/rest/auth/guards/roles-auth.guard'
+import { RolesAuthGuard } from '../../src/rest/auth/guards/jwt-auth.guard'
 
 describe('categoryController (e2e)', () => {
   let app: INestApplication
@@ -43,7 +45,12 @@ describe('categoryController (e2e)', () => {
           useValue: mockCategoryService,
         },
       ],
-    }).compile()
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesAuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile()
 
     app = moduleFixture.createNestApplication()
     await app.init()
@@ -51,6 +58,7 @@ describe('categoryController (e2e)', () => {
   afterAll(async () => {
     await app.close()
   })
+
   describe('GET /category', () => {
     it('should return a paginated array of categories', async () => {
       const limit = 10

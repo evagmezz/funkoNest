@@ -5,6 +5,8 @@ import { Category } from '../entities/category.entity'
 import { NotFoundException } from '@nestjs/common'
 import { CacheModule } from '@nestjs/cache-manager'
 import { Paginated } from 'nestjs-paginate'
+import { JwtAuthGuard } from '../../auth/guards/roles-auth.guard'
+import { RolesAuthGuard } from '../../auth/guards/jwt-auth.guard'
 
 describe('CategoryController', () => {
   let controller: CategoryController

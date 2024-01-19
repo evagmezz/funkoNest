@@ -7,6 +7,8 @@ import { CreateFunkoDto } from '../../src/rest/funkos/dto/create-funko.dto'
 import { UpdateFunkoDto } from '../../src/rest/funkos/dto/update-funko.dto'
 import * as request from 'supertest'
 import { CacheModule } from '@nestjs/cache-manager'
+import { JwtAuthGuard } from '../../src/rest/auth/guards/roles-auth.guard'
+import { RolesAuthGuard } from '../../src/rest/auth/guards/jwt-auth.guard'
 
 describe('FunkosController (e2e)', () => {
   let app: INestApplication
@@ -18,6 +20,8 @@ describe('FunkosController (e2e)', () => {
     price: 10,
     quantity: 10,
     category: 'category 1',
+    image: 'image 1',
+    isDeleted: false,
   }
 
   const createFunkoDto: CreateFunkoDto = {
@@ -56,7 +60,12 @@ describe('FunkosController (e2e)', () => {
           useValue: mockFunkoService,
         },
       ],
-    }).compile()
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesAuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile()
 
     app = moduleFixture.createNestApplication()
     await app.init()
