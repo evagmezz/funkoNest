@@ -23,10 +23,21 @@ import {
   PaginateQuery,
 } from 'nestjs-paginate'
 
+/**
+ * Servicio que gestiona las operaciones relacionadas con las categorías.
+ */
 @Injectable()
 export class CategoryService {
   private logger = new Logger('CategoryService')
 
+  /**
+   * Constructor del servicio de categorías.
+   *
+   * @param {CategoryMapper} categoryMapper - Mapper utilizado para mapear datos relacionados con las categorías.
+   * @param {NotificationsGateway} notificationsGateway - Gateway para notificaciones en tiempo real.
+   * @param {Repository<Category>} categoryRepository - Repositorio de categorías.
+   * @param {Cache} cacheManager - Manager de caché utilizado para almacenar y recuperar datos en caché.
+   */
   constructor(
     private readonly categoryMapper: CategoryMapper,
     private readonly notificationsGateway: NotificationsGateway,
@@ -35,6 +46,12 @@ export class CategoryService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
+  /**
+   * Obtiene todas las categorías paginadas.
+   *
+   * @param {PaginateQuery} query - Parámetros de paginación y búsqueda.
+   * @returns {Promise<CategoryDto[]>} - Promesa que representa la lista de categorías paginadas.
+   */
   async findAll(query: PaginateQuery) {
     this.logger.log('Buscando todas las categorias...')
     const cache: CategoryDto[] = await this.cacheManager.get(
@@ -60,6 +77,13 @@ export class CategoryService {
     return page
   }
 
+  /**
+   * Obtiene una categoría por su ID.
+   *
+   * @param {string} id - ID de la categoría a buscar.
+   * @returns {Promise<CategoryDto>} - Promesa que representa la categoría encontrada.
+   * @throws {NotFoundException} - Si la categoría no existe.
+   */
   async findOne(id: string) {
     this.logger.log(`Find one categoria by id:${id}`)
     const cache: CategoryDto = await this.cacheManager.get(`category-${id}`)
@@ -75,6 +99,12 @@ export class CategoryService {
     return category
   }
 
+  /**
+   * Crea una nueva categoría a partir de los datos proporcionados y la almacena en la base de datos.
+   *
+   * @param {CreateCategoryDto} createCategoryDto - Datos de la categoría a ser creada.
+   * @returns {Promise<CategoryDto>} - Promesa que representa la categoría creada.
+   */
   async create(createCategoryDto: CreateCategoryDto) {
     this.logger.log('Creando categoria...')
     const category = this.categoryMapper.toEntity(createCategoryDto)
@@ -85,6 +115,14 @@ export class CategoryService {
     return dto
   }
 
+  /**
+   * Actualiza una categoría existente identificada por su ID con los datos proporcionados.
+   *
+   * @param {string} id - ID de la categoría a ser actualizada.
+   * @param {UpdateCategoryDto} updateCategoryDto - Datos actualizados de la categoría.
+   * @returns {Promise<CategoryDto>} - Promesa que representa la categoría actualizada.
+   * @throws {BadRequestException} - Si la categoría con el nuevo nombre ya existe.
+   */
   async update(id: string, updateCategoryDto: UpdateCategoryDto) {
     this.logger.log(`Actualizando categoria con id:${id}`)
     const categoryToUpdate = await this.findOne(id)
@@ -110,6 +148,13 @@ export class CategoryService {
     }
   }
 
+  /**
+   * Elimina una categoría existente identificada por su ID de la base de datos.
+   *
+   * @param {string} id - ID de la categoría a ser eliminada.
+   * @returns {Promise<void>} - Promesa que indica la eliminación exitosa de la categoría.
+   * @throws {NotFoundException} - Si la categoría con el ID proporcionado no existe.
+   */
   async remove(id: string) {
     const category = await this.categoryExists(id)
     if (!category) {
@@ -122,6 +167,13 @@ export class CategoryService {
     }
   }
 
+  /**
+   * Cambia el estado activo de una categoría identificada por su ID a inactivo.
+   *
+   * @param {string} id - ID de la categoría a ser desactivada.
+   * @returns {Promise<Category>} - Promesa que representa la categoría actualizada.
+   * @throws {NotFoundException} - Si la categoría con el ID proporcionado no existe.
+   */
   async changeIsActive(id: string): Promise<Category> {
     const category = await this.categoryRepository.findOneBy({ id })
     if (!category) {
@@ -137,6 +189,13 @@ export class CategoryService {
     }
   }
 
+  /**
+   * Verifica la existencia de una categoría por su nombre y la devuelve. Si no existe, la crea.
+   *
+   * @param {string} name - Nombre de la categoría.
+   * @returns {Promise<Category>} - Promesa que representa la categoría existente o recién creada.
+   * @throws {BadRequestException} - Si la categoría con el nombre proporcionado ya existe y está activa.
+   */
   async categoryExists(name: string) {
     const cache: Category = await this.cacheManager.get(`category_name_${name}`)
     if (cache) {
@@ -163,6 +222,12 @@ export class CategoryService {
     }
   }
 
+  /**
+   * Invalida las claves de caché que coinciden con el patrón proporcionado.
+   *
+   * @param {string} keyPattern - Patrón de claves de caché a ser invalidadas.
+   * @returns {Promise<void>} - Promesa que indica que las claves de caché han sido invalidadas.
+   */
   async invalidateCacheKey(keyPattern: string): Promise<void> {
     const cacheKeys = await this.cacheManager.store.keys()
     const keysToDelete = cacheKeys.filter((key) => key.startsWith(keyPattern))
@@ -170,6 +235,14 @@ export class CategoryService {
     await Promise.all(promises)
   }
 
+  /**
+   * Notifica a través del gateway de notificaciones la acción realizada en una categoría.
+   *
+   * @param {'CREATE' | 'UPDATE' | 'DELETE'} type - Tipo de acción realizada.
+   * @param {CategoryDto} data - Datos de la categoría afectada.
+   * @returns {void}
+   * @private
+   */
   private notify(type: 'CREATE' | 'UPDATE' | 'DELETE', data: CategoryDto) {
     this.notificationsGateway.sendMessage(type, data)
   }

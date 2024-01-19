@@ -25,6 +25,9 @@ import {
 } from 'nestjs-paginate'
 import { hash } from 'typeorm/util/StringUtils'
 
+/**
+ * Servicio que proporciona métodos para la gestión de Funkos.
+ */
 @Injectable()
 export class FunkosService {
   private logger = new Logger('FunkosService')
@@ -40,6 +43,12 @@ export class FunkosService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
+  /**
+   * Obtiene todos los Funkos paginados según el objeto de consulta proporcionado.
+   *
+   * @param {PaginateQuery} query - Objeto de consulta para la paginación.
+   * @returns {Promise<{ data: FunkoDto[]; meta: any; links: { first?: string; previous?: string; next?: string; last?: string; } }>} - Promesa que representa la lista de Funkos paginada.
+   */
   async findAll(query: PaginateQuery) {
     this.logger.log('Buscando todos los funkos...')
     const cache: FunkoDto[] = await this.cacheManager.get(
@@ -76,6 +85,13 @@ export class FunkosService {
     return dto
   }
 
+  /**
+   * Obtiene un Funko específico por su ID.
+   *
+   * @param {number} id - ID del Funko a ser buscado.
+   * @returns {Promise<FunkoDto>} - Promesa que representa el Funko encontrado.
+   * @throws {NotFoundException} - Si el Funko con el ID proporcionado no existe.
+   */
   async findOne(id: number) {
     this.logger.log(`Buscando funko con id: ${id}`)
     const cache: FunkoDto = await this.cacheManager.get(`funko-${id}`)
@@ -97,6 +113,12 @@ export class FunkosService {
     }
   }
 
+  /**
+   * Crea un nuevo Funko a partir de los datos proporcionados.
+   *
+   * @param {CreateFunkoDto} createFunkoDto - Datos del Funko a ser creado.
+   * @returns {Promise<FunkoDto>} - Promesa que representa el Funko creado.
+   */
   async create(createFunkoDto: CreateFunkoDto) {
     this.logger.log('Funko creado')
     const category: Category = await this.checkCategory(createFunkoDto.category)
@@ -108,6 +130,14 @@ export class FunkosService {
     return funkoDto
   }
 
+  /**
+   * Actualiza un Funko existente identificado por su ID con los datos proporcionados.
+   *
+   * @param {number} id - ID del Funko a ser actualizado.
+   * @param {UpdateFunkoDto} updateFunkoDto - Datos actualizados del Funko.
+   * @returns {Promise<FunkoDto>} - Promesa que representa el Funko actualizado.
+   * @throws {NotFoundException} - Si el Funko o la categoría asociada no son encontrados.
+   */
   async update(id: number, updateFunkoDto: UpdateFunkoDto) {
     this.logger.log(`Actualizando funko con id: ${id}`)
     const category: Category = await this.checkCategory(updateFunkoDto.category)
@@ -136,6 +166,13 @@ export class FunkosService {
     return funkoDto
   }
 
+  /**
+   * Elimina un Funko existente identificado por su ID de la base de datos.
+   *
+   * @param {number} id - ID del Funko a ser eliminado.
+   * @returns {Promise<FunkoDto>} - Promesa que representa el Funko eliminado.
+   * @throws {NotFoundException} - Si el Funko con el ID proporcionado no existe.
+   */
   async remove(id: number) {
     this.logger.log(`Eliminando funko con id: ${id}`)
     const funko = await this.funkoRepository
@@ -164,6 +201,13 @@ export class FunkosService {
     return funkoDto
   }
 
+  /**
+   * Realiza una eliminación lógica de un Funko cambiando la propiedad `isDeleted` a `true`.
+   *
+   * @param {number} id - ID del Funko a ser eliminado lógicamente.
+   * @returns {Promise<FunkoDto>} - Promesa que representa el Funko eliminado lógicamente.
+   * @throws {NotFoundException} - Si el Funko con el ID proporcionado no existe.
+   */
   async isDeletedToTrue(id: number) {
     this.logger.log(`Eliminado logico de funko con id: ${id}`)
     const funko = await this.funkoRepository
@@ -185,6 +229,13 @@ export class FunkosService {
     return funkoDto
   }
 
+  /**
+   * Verifica la existencia de una categoría por su nombre. Si no existe, lanza una excepción.
+   *
+   * @param {string} name - Nombre de la categoría a ser verificada.
+   * @returns {Promise<Category>} - Promesa que representa la categoría encontrada.
+   * @throws {BadRequestException} - Si la categoría con el nombre proporcionado no existe o no está activa.
+   */
   async checkCategory(name: string) {
     this.logger.log(`Finding category with name ${name}`)
     const category = await this.categoryRepository
@@ -201,6 +252,15 @@ export class FunkosService {
     }
   }
 
+  /**
+   * Actualiza la imagen de un Funko identificado por su ID.
+   *
+   * @param {number} id - ID del Funko cuya imagen se actualizará.
+   * @param {Express.Multer.File} file - Archivo de imagen a ser actualizado.
+   * @returns {Promise<FunkoDto>} - Promesa que representa el Funko con la imagen actualizada.
+   * @throws {NotFoundException} - Si el Funko con el ID proporcionado no existe.
+   * @throws {BadRequestException} - Si el archivo no es proporcionado.
+   */
   async updateImage(id: number, file: Express.Multer.File) {
     this.logger.log(`Updating funko image with id ${id}`)
     const funkoToUpdate = await this.funkoRepository.findOneBy({ id })
@@ -228,6 +288,12 @@ export class FunkosService {
     return dto
   }
 
+  /**
+   * Invalida las claves de caché que coinciden con el patrón proporcionado.
+   *
+   * @param {string} keyPattern - Patrón de clave de caché a ser invalidado.
+   * @returns {Promise<void>} - Promesa que representa la finalización de la invalidación de caché.
+   */
   async invalidateCacheKey(keyPattern: string): Promise<void> {
     const cacheKeys = await this.cacheManager.store.keys()
     const keysToDelete = cacheKeys.filter((key) => key.startsWith(keyPattern))
@@ -235,6 +301,14 @@ export class FunkosService {
     await Promise.all(promises)
   }
 
+  /**
+   * Notifica a través del gateway de notificaciones la acción realizada en un Funko.
+   *
+   * @param {'CREATE' | 'UPDATE' | 'DELETE'} type - Tipo de acción realizada.
+   * @param {FunkoDto} data - Datos del Funko afectado.
+   * @returns {void}
+   * @private
+   */
   private notify(type: 'CREATE' | 'UPDATE' | 'DELETE', data: FunkoDto) {
     this.notificationsGateway.sendMessage(type, data)
   }

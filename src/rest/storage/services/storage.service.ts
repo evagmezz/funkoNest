@@ -4,12 +4,22 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { join } from 'path'
 
+/**
+ * Servicio encargado de la gestión de almacenamiento, como subida, búsqueda y eliminación de archivos.
+ *
+ * Este servicio se utiliza para manejar la lógica de almacenamiento de archivos, incluyendo la creación
+ * y limpieza de carpetas de carga en el entorno de desarrollo.
+ */
 @Injectable()
 export class StorageService {
   private readonly uploadsFolder = process.env.UPLOADS_FOLDER || './storage-dir'
   private readonly isDev = process.env.NODE_ENV === 'dev'
   private readonly logger = new Logger(StorageService.name)
 
+  /**
+   * Método llamado cuando el módulo se inicializa. En el entorno de desarrollo, se encarga de limpiar
+   * los archivos de la carpeta de carga o de crear la carpeta si no existe.
+   */
   async onModuleInit() {
     if (this.isDev) {
       if (fs.existsSync(this.uploadsFolder)) {
@@ -26,6 +36,13 @@ export class StorageService {
     }
   }
 
+  /**
+   * Busca un archivo en la carpeta de carga.
+   *
+   * @param {string} filename - El nombre del archivo a buscar.
+   * @returns {string} - La ruta completa del archivo encontrado.
+   * @throws {NotFoundException} - Excepción lanzada si el archivo no se encuentra.
+   */
   findFile(filename: string) {
     this.logger.log(`Searching for file ${filename}`)
     const file = join(
@@ -41,6 +58,12 @@ export class StorageService {
     }
   }
 
+  /**
+   * Elimina un archivo de la carpeta de carga.
+   *
+   * @param {string} filename - El nombre del archivo a eliminar.
+   * @throws {NotFoundException} - Excepción lanzada si el archivo no se encuentra.
+   */
   removeFile(filename: string): void {
     this.logger.log(`Removing file ${filename}`)
     const file = join(

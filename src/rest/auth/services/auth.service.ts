@@ -10,16 +10,32 @@ import { UserSignUpDto } from '../dto/user-sign.up.dto'
 import { AuthMapper } from '../mapper/auth-mapper'
 import { UserSignInDto } from '../dto/user-sign.in.dto'
 
+/**
+ * Servicio que gestiona la lógica de autenticación de usuarios.
+ */
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name)
 
+  /**
+   * Constructor del servicio de autenticación.
+   *
+   * @param {UsersService} usersService - Servicio de usuarios utilizado para la gestión de usuarios.
+   * @param {AuthMapper} authMapper - Mapper utilizado para mapear datos relacionados con la autenticación.
+   * @param {JwtService} jwtService - Servicio JWT utilizado para la generación de tokens de acceso.
+   */
   constructor(
     private readonly usersService: UsersService,
     private readonly authMapper: AuthMapper,
     private readonly jwtService: JwtService,
   ) {}
 
+  /**
+   * Registra un nuevo usuario y devuelve un token de acceso.
+   *
+   * @param {UserSignUpDto} userSignUpDto - Datos del usuario para el registro.
+   * @returns {Promise<{ access_token: string }>} - Promesa que representa el resultado del registro con el token de acceso.
+   */
   async signUp(userSignUpDto: UserSignUpDto) {
     this.logger.log(`Sign up ${userSignUpDto.username}`)
 
@@ -29,6 +45,13 @@ export class AuthService {
     return this.getAccessToken(user.id)
   }
 
+  /**
+   * Inicia sesión de un usuario y devuelve un token de acceso.
+   *
+   * @param {UserSignInDto} userSignInDto - Datos del usuario para el inicio de sesión.
+   * @returns {Promise<{ access_token: string }>} - Promesa que representa el resultado del inicio de sesión con el token de acceso.
+   * @throws {BadRequestException} - Si el nombre de usuario o la contraseña son inválidos.
+   */
   async signIn(userSignInDto: UserSignInDto) {
     this.logger.log(`Sign in ${userSignInDto.username}`)
     const user = await this.usersService.findByUsername(userSignInDto.username)
@@ -45,6 +68,12 @@ export class AuthService {
     return this.getAccessToken(user.id)
   }
 
+  /**
+   * Valida un usuario por su ID.
+   *
+   * @param {number} id - ID del usuario a validar.
+   * @returns {Promise<any>} - Promesa que representa el resultado de la validación del usuario.
+   */
   async validateUser(id: number) {
     this.logger.log(`Validating user ${id}`)
     return await this.usersService.findOne(id)
