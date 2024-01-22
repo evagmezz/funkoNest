@@ -133,9 +133,9 @@ export class OrdersService {
 
     const orderToBeSaved = this.ordersMapper.toEntity(updateOrderDto)
 
-    await this.returnOrderStock(orderToBeSaved)
-
     await this.checkOrder(orderToBeSaved)
+
+    await this.returnOrderStock(orderToBeSaved)
     const orderToSave = await this.reserveOrderStock(orderToBeSaved)
 
     return await this.orderRepository
@@ -186,7 +186,7 @@ export class OrdersService {
           'The funkoId of the order line is not valid',
         )
       }
-      if (funko.quantity < orderLine.quantity && orderLine.quantity > 0) {
+      if (funko.quantity < orderLine.quantity) {
         throw new BadRequestException(
           `Quantity of funko ${funko.id} is not enough`,
         )
