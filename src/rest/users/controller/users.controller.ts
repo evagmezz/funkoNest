@@ -38,7 +38,7 @@ export class UsersController {
 
   @Get(':id')
   @Roles('ADMIN')
-  async findOne(id: number) {
+  async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.usersService.findOne(id)
   }
 
@@ -81,11 +81,13 @@ export class UsersController {
   }
 
   @Get('me/orders')
+  @Roles('USER')
   async getOrders(@Req() request: any) {
     return await this.usersService.getOrders(request.user.id)
   }
 
   @Get('me/orders/:id')
+  @Roles('USER')
   async getOrder(@Req() request: any, @Param('id', IdValidatePipe) id: string) {
     return await this.usersService.getOrder(request.user.id, id)
   }
